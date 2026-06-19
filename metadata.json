@@ -1,0 +1,6 @@
+{
+  "name": "Food Order & Admin Dashboard",
+  "description": "Dashboard interactivo con menú autogestionado para WhatsApp, control de inventario, cálculo automático de ganancias y sincronización Firebase en tiempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

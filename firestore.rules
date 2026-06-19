@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Función auxiliar para comprobar si el usuario es administrador
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Perfiles de usuario
+    match /profiles/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Menú digital de Productos
+    match /products/{productId} {
+      allow read: if true; // Cualquiera puede ver el menú para hacer un pedido
+      allow write: if isAdmin(); // Solo el administrador puede modificar precios e ítems
+    }
+
+    // Insumos e Inventario crítico
+    match /ingredients/{ingredientId} {
+      allow read: if isAdmin(); // El stock es interno
+      allow write: if isAdmin();
+    }
+
+    // Pedidos de WhatsApp realizados por mesas o delivery
+    match /orders/{orderId} {
+      allow read: if true; // Los clientes y el restaurante pueden consultar el estado
+      allow create: if true; // Permitir a cualquier mesa o cliente QR crear un pedido nuevo
+      allow update, delete: if isAdmin(); // Solo cocina o el administrador pueden procesar o cancelar
+    }
+
+    // Configuración general del local (ej: teléfono receptor de WhatsApp)
+    match /business_config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

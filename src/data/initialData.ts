@@ -1,0 +1,180 @@
+import { Product, Ingredient, Order } from '../types';
+
+export const INITIAL_PRODUCTS: Product[] = [
+  {
+    id: 'prod-1',
+    name: 'Burger Doble Cheddar',
+    description: 'Doble medallón de carne de 120g, doble cheddar, bacon crujiente y salsa de la casa.',
+    price: 6500,
+    cost: 2400,
+    category: 'Hamburguesas',
+  },
+  {
+    id: 'prod-2',
+    name: 'Burger Clásica',
+    description: 'Sencilla de 120g, lechuga, tomate, queso cheddar y mayonesa casera.',
+    price: 4800,
+    cost: 1700,
+    category: 'Hamburguesas',
+  },
+  {
+    id: 'prod-3',
+    name: 'Oklahoma Fried Onion',
+    description: 'Smashed burger con cebolla frita ultrafina, cheddar extra y aderezo.",',
+    price: 5800,
+    cost: 2100,
+    category: 'Hamburguesas',
+  },
+  {
+    id: 'prod-4',
+    name: 'Papas Cheddar & Bacon',
+    description: 'Papas fritas bastón crujientes, bañadas en cheddar fundido artesanal y bacon picado.',
+    price: 3200,
+    cost: 1100,
+    category: 'Acompañamientos',
+  },
+  {
+    id: 'prod-5',
+    name: 'Papas Fritas Clásicas',
+    description: 'Papas fritas caseras cortadas al momento.',
+    price: 2200,
+    cost: 650,
+    category: 'Acompañamientos',
+  },
+  {
+    id: 'prod-6',
+    name: 'Coca-Cola Litro',
+    description: 'Bebida bien helada, presentación familiar de vidrio retornable o plástico según stock.',
+    price: 1800,
+    cost: 900,
+    category: 'Bebidas',
+  },
+  {
+    id: 'prod-7',
+    name: 'Agua Mineral 500ml',
+    description: 'Con o sin gas, purificada y refrescante.',
+    price: 1200,
+    cost: 400,
+    category: 'Bebidas',
+  }
+];
+
+export const INITIAL_INGREDIENTS: Ingredient[] = [
+  {
+    id: 'ing-1',
+    name: 'Pan de Burger',
+    unit: 'unidades',
+    currentStock: 22,
+    minStock: 40,
+    targetStock: 200,
+    unitCost: 150,
+    category: 'Panificados',
+  },
+  {
+    id: 'ing-2',
+    name: 'Medallón de Carne (120g)',
+    unit: 'unidades',
+    currentStock: 15,
+    minStock: 30,
+    targetStock: 150,
+    unitCost: 750,
+    category: 'Carnes',
+  },
+  {
+    id: 'ing-3',
+    name: 'Queso Cheddar',
+    unit: 'fetis',
+    currentStock: 140,
+    minStock: 80,
+    targetStock: 400,
+    unitCost: 100,
+    category: 'Lácteos',
+  },
+  {
+    id: 'ing-4',
+    name: 'Papas Bastón (prefritas)',
+    unit: 'kg',
+    currentStock: 45,
+    minStock: 15,
+    targetStock: 60,
+    unitCost: 1200,
+    category: 'Semicongelados',
+  },
+  {
+    id: 'ing-5',
+    name: 'Bacon Ahumado',
+    unit: 'kg',
+    currentStock: 12,
+    minStock: 5,
+    targetStock: 25,
+    unitCost: 4500,
+    category: 'Carnes',
+  },
+];
+
+export const INITIAL_ORDERS: Order[] = [
+  {
+    id: '#9043',
+    customerName: 'Tomas Bianchi',
+    items: [
+      { productId: 'prod-1', productName: 'Burger Doble Cheddar', quantity: 2, price: 6500, cost: 2400 },
+      { productId: 'prod-4', productName: 'Papas Cheddar & Bacon', quantity: 1, price: 3200, cost: 1100 }
+    ],
+    totalPrice: 16200,
+    totalCost: 5900,
+    netProfit: 10300,
+    createdAt: new Date().toISOString(),
+    status: 'cooking',
+    viaWhatsApp: true,
+    orderType: 'delivery',
+    customerContact: '5493415551234',
+    deliveryAddress: 'Av. Pellegrini 1420',
+  },
+  {
+    id: '#9042',
+    customerName: 'Carlos Mendía',
+    items: [
+      { productId: 'prod-2', productName: 'Burger Clásica', quantity: 1, price: 4800, cost: 1700 },
+      { productId: 'prod-6', productName: 'Coca-Cola Litro', quantity: 1, price: 1800, cost: 900 }
+    ],
+    totalPrice: 6600,
+    totalCost: 2600,
+    netProfit: 4000,
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+    status: 'cooking',
+    viaWhatsApp: true,
+    orderType: 'local',
+  },
+  {
+    id: '#9041',
+    customerName: 'Lucía Pérez',
+    items: [
+      { productId: 'prod-1', productName: 'Burger Doble Cheddar', quantity: 1, price: 6500, cost: 2400 },
+      { productId: 'prod-5', productName: 'Papas Fritas Clásicas', quantity: 1, price: 2200, cost: 650 },
+      { productId: 'prod-7', productName: 'Agua Mineral 500ml', quantity: 1, price: 1200, cost: 400 }
+    ],
+    totalPrice: 9900,
+    totalCost: 3450,
+    netProfit: 6450,
+    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+    status: 'delivered',
+    viaWhatsApp: true,
+    orderType: 'takeaway',
+  },
+  {
+    id: '#9040',
+    customerName: 'Santi G.',
+    items: [
+      { productId: 'prod-3', productName: 'Oklahoma Fried Onion', quantity: 2, price: 5800, cost: 2100 }
+    ],
+    totalPrice: 11600,
+    totalCost: 4200,
+    netProfit: 7400,
+    createdAt: new Date(Date.now() - 3600000 * 6).toISOString(),
+    status: 'pending',
+    viaWhatsApp: true,
+    orderType: 'delivery',
+    customerContact: '5493415559876',
+    deliveryAddress: 'Salta 2231, Piso 3B',
+  },
+];

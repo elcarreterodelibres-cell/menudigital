@@ -1,0 +1,50 @@
+{
+  "collections": {
+    "products": {
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "description": "string",
+        "price": "number",
+        "category": "string",
+        "imageUrl": "string",
+        "cost": "number"
+      }
+    },
+    "ingredients": {
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "unit": "string",
+        "currentStock": "number",
+        "minStock": "number",
+        "targetStock": "number",
+        "unitCost": "number"
+      }
+    },
+    "orders": {
+      "fields": {
+        "id": "string",
+        "customerName": "string",
+        "items": "array",
+        "totalPrice": "number",
+        "totalCost": "number",
+        "netProfit": "number",
+        "createdAt": "timestamp",
+        "status": "string",
+        "viaWhatsApp": "boolean",
+        "orderType": "string",
+        "customerContact": "string",
+        "deliveryAddress": "string"
+      }
+    },
+    "business_config": {
+      "fields": {
+        "whatsappPhone": "string",
+        "businessName": "string",
+        "qrUrl": "string",
+        "tablesCount": "number"
+      }
+    }
+  }
+}
