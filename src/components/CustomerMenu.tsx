@@ -102,9 +102,6 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
   const [authPassword, setAuthPassword] = useState<string>('');
   const [authName, setAuthName] = useState<string>('');
   const [authPhone, setAuthPhone] = useState<string>('');
-  const [googlePopupOpen, setGooglePopupOpen] = useState<boolean>(false);
-  const [googleProcessing, setGoogleProcessing] = useState<boolean>(false);
-
   // Customer choice fields (pre-filled if authenticated)
   const [customerName, setCustomerName] = useState<string>('');
   const [orderType, setOrderType] = useState<'delivery' | 'local' | 'takeaway'>('local');
@@ -241,30 +238,6 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
       setAuthPassword('');
       alert(`¡Iniciaste sesión correctamente! Se ha creado un perfil Firebase con tu correo ${generatedUser.email}.`);
     }
-  };
-
-  const startGoogleSignIn = () => {
-    setGooglePopupOpen(true);
-    setGoogleProcessing(false);
-  };
-
-  const handleGoogleAccountSelect = (selectedEmail: string, selectedName: string) => {
-    setGoogleProcessing(true);
-    setTimeout(() => {
-      const googleUser: AppUser = {
-        uid: `usr_google_${Math.floor(100000 + Math.random() * 900000)}`,
-        email: selectedEmail,
-        displayName: selectedName,
-        photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80',
-        authProvider: 'google'
-      };
-      db.saveUser(googleUser);
-      setCurrentUser(googleUser);
-      setGoogleProcessing(false);
-      setGooglePopupOpen(false);
-      setAuthModalOpen(false);
-      alert(`¡Autenticado con éxito usando Google! Hola, ${selectedName}. Tu perfil de Gmail se ha sincronizado correctamente.`);
-    }, 1200);
   };
 
   const handleLogout = () => {
@@ -1093,25 +1066,6 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               </button>
             </div>
 
-            {/* Google provider */}
-            <button
-              onClick={startGoogleSignIn}
-              type="button"
-              className="w-full py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 rounded-xl font-bold text-xs text-zinc-200 flex items-center justify-center gap-2 mb-4 cursor-pointer transition-all active:scale-98 shadow-sm"
-            >
-              <span className="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center font-serif text-sm italic font-extrabold shadow-sm">
-                G
-              </span>
-              Sincronizar con cuenta de Google
-            </button>
-
-            <div className="relative text-center my-3.5">
-              <span className="text-[9px] bg-[#141417] px-2.5 text-zinc-500 font-bold uppercase tracking-widest relative z-10">
-                O ingresá de forma clásica
-              </span>
-              <div className="absolute top-1/2 inset-x-0 h-px bg-zinc-800 z-0"></div>
-            </div>
-
             {/* Standard manual fields */}
             {authTab === 'login' ? (
               <form onSubmit={handleLoginSubmitted} className="space-y-3.5 text-xs font-semibold text-zinc-300">
@@ -1209,90 +1163,6 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                 </button>
               </form>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* ==================== SIMULATED GMAIL POPUP (GOOGLE OAUTH) ==================== */}
-      {googlePopupOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-xs bg-[#18181b] border border-zinc-800 rounded-xl overflow-hidden shadow-2xl animate-scale-up text-zinc-100">
-            {/* Header Google Identity Provider */}
-            <div className="p-4 bg-[#1e1e24] border-b border-zinc-800 text-center relative">
-              <div className="flex justify-center items-center gap-1.5 text-base font-extrabold">
-                <span className="text-blue-500 font-serif font-black">G</span>
-                <span className="text-red-500 font-serif font-black">o</span>
-                <span className="text-yellow-500 font-serif font-black">o</span>
-                <span className="text-blue-500 font-serif font-black">g</span>
-                <span className="text-green-500 font-serif font-black">l</span>
-                <span className="text-red-500 font-serif font-black">e</span>
-                <span className="text-[10px] text-zinc-400 font-sans ml-1 font-bold">Sign-In</span>
-              </div>
-              <p className="text-[10px] text-zinc-400 mt-1.5 font-bold">Acceder a <span className="text-red-500">{businessName}</span> con Gmail</p>
-              
-              {!googleProcessing && (
-                <button
-                  onClick={() => setGooglePopupOpen(false)}
-                  className="absolute top-2.5 right-2.5 text-[10px] text-zinc-450 hover:text-white bg-zinc-800 p-1.5 rounded-full cursor-pointer font-bold border border-zinc-700"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {/* google accounts selector */}
-            <div className="p-5">
-              {googleProcessing ? (
-                <div className="py-8 flex flex-col items-center justify-center gap-3">
-                  <div className="w-10 h-10 border-4 border-blue-600 border-t-red-500 rounded-full animate-spin"></div>
-                  <span className="text-xs font-black text-zinc-100 tracking-wider animate-pulse">Sincronizando OAuth...</span>
-                  <span className="text-[9px] text-zinc-500">Verificando credenciales con Firebase Realtime...</span>
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">
-                    Selecciona una Cuenta Gmail
-                  </span>
-
-                  {[
-                    { email: 'elcarreterodelibres@gmail.com', name: 'Tomás Carretero (Usuario)' },
-                    { email: 'cliente.gourmet@gmail.com', name: 'Laura Martínez' },
-                    { email: 'invitado.express@gmail.com', name: 'Invitado Express' },
-                  ].map((acc) => (
-                    <button
-                      key={acc.email}
-                      onClick={() => handleGoogleAccountSelect(acc.email, acc.name)}
-                      className="w-full p-2.5 bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 rounded-lg text-left flex items-center justify-between gap-2.5 cursor-pointer transition-colors"
-                    >
-                      <div className="min-w-0">
-                        <span className="font-extrabold text-[11px] text-white block leading-tight truncate">
-                          {acc.name}
-                        </span>
-                        <span className="text-[9px] font-mono text-zinc-500 block truncate">
-                          {acc.email}
-                        </span>
-                      </div>
-                      <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
-                    </button>
-                  ))}
-
-                  {/* Manual add accounts */}
-                  <div className="pt-2 border-t border-zinc-800/80 mt-2">
-                    <button
-                      onClick={() => handleGoogleAccountSelect('nuevo.cliente@gmail.com', 'Cliente Nuevo')}
-                      className="w-full py-2 bg-zinc-850 hover:bg-zinc-800 rounded text-[9.5px] font-bold text-zinc-300 text-center cursor-pointer transition-colors border border-zinc-800"
-                    >
-                      ➕ Usar otra cuenta de Google
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Details footer block */}
-            <div className="bg-[#141417] p-3 text-[8px] text-zinc-500 text-center font-normal leading-relaxed border-t border-zinc-850">
-              Google comparte de manera segura tu nombre, dirección de correo electrónico y foto de perfil con {businessName}.
-            </div>
           </div>
         </div>
       )}
