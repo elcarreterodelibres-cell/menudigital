@@ -22,7 +22,25 @@ export default function MenuPanel({ products, setOrders, onOrderSuccess }: MenuP
   const [whatsappNumber, setWhatsappNumber] = useState<string>('5493415551234'); // Business Phone
 
   // Extract categories
-  const categories = ['Todos', ...Array.from(new Set(products.map((p) => p.category)))];
+  const preferredCategoryOrder = [
+    'Todos',
+    'Entradas',
+    'Minutas',
+    'Hamburguesas',
+    'Platos',
+    'Guarniciones',
+    'Acompañamientos',
+    'Bebidas'
+  ];
+
+  const categories = ['Todos', ...Array.from(new Set(products.map((p) => p.category)))].sort((a, b) => {
+    const idxA = preferredCategoryOrder.indexOf(a);
+    const idxB = preferredCategoryOrder.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.localeCompare(b);
+  });
 
   // Filter products
   const filteredProducts = selectedCategory === 'Todos'

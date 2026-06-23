@@ -28,6 +28,8 @@ export interface Ingredient {
 export interface CartItem {
   product: Product;
   quantity: number;
+  selectedDressings?: string[];
+  selectedSideDishes?: { id: string; name: string; price: number; cost: number }[];
 }
 
 export interface Order {
@@ -44,11 +46,16 @@ export interface Order {
   totalCost: number;
   netProfit: number;
   createdAt: string;
+  cookingStartedAt?: string;
+  completedAt?: string;
   status: 'pending' | 'cooking' | 'delivered' | 'cancelled';
   viaWhatsApp: boolean;
   orderType: 'delivery' | 'local' | 'takeaway';
   customerContact?: string;
   deliveryAddress?: string;
+  notes?: string;
+  paymentMethod?: string;
+  deliveryCost?: number;
 }
 
 export interface AppUser {

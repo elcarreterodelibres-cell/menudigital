@@ -11,14 +11,36 @@ import ProductsAdminPanel from './components/ProductsAdminPanel';
 
 import { Product, Ingredient, Order } from './types';
 import { db } from './lib/db';
-import { Smartphone, LayoutDashboard, QrCode, Lock, ShieldCheck, RotateCcw } from 'lucide-react';
+import { Smartphone, LayoutDashboard, QrCode, Lock, ShieldCheck, RotateCcw, Printer } from 'lucide-react';
+import { generateOrderTicketPDF, generateConsolidatedTicketsPDF } from './utils/pdfGenerator';
 
 export default function App() {
-  const [viewMode, setViewMode] = useState<'client' | 'admin'>('admin');
+  const [viewMode, setViewMode] = useState<'client' | 'admin'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('admin') === 'true' || params.get('view') === 'admin') {
+        return 'admin';
+      }
+    }
+    return 'client';
+  });
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   
+  // Theme state for administration (light/dark mode toggle)
+  const [adminTheme, setAdminTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('admin_theme') as 'light' | 'dark') || 'light';
+  });
+
+  const toggleAdminTheme = () => {
+    setAdminTheme((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      localStorage.setItem('admin_theme', next);
+      return next;
+    });
+  };
+  
   // States of isolation simulation (like Vercel hosting)
-  const [vercelSimulation, setVercelSimulation] = useState<'full' | 'split'>('split'); // 'split' shows mock smartphone frame, 'full' mimics real production separation
+  const [vercelSimulation, setVercelSimulation] = useState<'full' | 'split'>('full'); // 'full' is the real production separation without layout switcher bar
   const [hasScannedQr, setHasScannedQr] = useState<boolean>(false);
   const [selectedSimulatedMesa, setSelectedSimulatedMesa] = useState<number>(4);
 
@@ -27,6 +49,59 @@ export default function App() {
   const [ingredients, setIngredients] = useState<Ingredient[]>(() => db.getIngredients());
   const [products, setProducts] = useState<Product[]>(() => db.getProducts());
   const [config, setConfig] = useState(() => db.getBusinessConfig());
+
+  // Printing states for Comanda ticketing system
+  const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
+  const [selectedOrderIdToPrint, setSelectedOrderIdToPrint] = useState<string>('');
+
+  // Native Browser Web Notifications state & actions
+  const [notificationPermission, setNotificationPermission] = useState<string>(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission;
+    }
+    return 'default';
+  });
+
+  const requestNotificationPermission = async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      try {
+        const permission = await Notification.requestPermission();
+        setNotificationPermission(permission);
+        if (permission === 'granted') {
+          try {
+            new Notification('🔔 ¡Notificaciones Activadas!', {
+              body: 'Recibirás avisos en tiempo real sobre nuevos pedidos de los clientes.',
+              tag: 'burguercontrol-test',
+            });
+          } catch (e) {
+            console.warn('Error displaying native permission notification:', e);
+          }
+        }
+        return permission;
+      } catch (err) {
+        console.error('Error requesting notification permission:', err);
+      }
+    }
+    return 'default';
+  };
+
+  const triggerNewOrderNotification = (order: Order) => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      const tableInfo = order.orderType === 'local' ? '🍽️ Consumo en Mesa' : order.orderType === 'delivery' ? '🛵 Envío a Domicilio' : '🛍️ Retiro en Local';
+      const itemsCount = order.items.reduce((acc: number, curr: any) => acc + curr.quantity, 0);
+      const totalAmount = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(order.totalPrice);
+      
+      try {
+        new Notification('📝 Nuevo Pedido Recibido', {
+          body: `${tableInfo}\n${itemsCount} productos • Total: ${totalAmount}\nCliente: ${order.customerName}`,
+          tag: order.id,
+          requireInteraction: true
+        });
+      } catch (e) {
+        console.warn('Error playing/displaying order notification:', e);
+      }
+    }
+  };
 
   // Password / PIN protection for administration
   const [adminPIN, setAdminPIN] = useState<string>('');
@@ -76,6 +151,11 @@ export default function App() {
       const addedOrders = next.filter((o) => !prevIds.has(o.id));
       
       if (addedOrders.length > 0) {
+        // Trigger browser native notification alert
+        addedOrders.forEach((order) => {
+          triggerNewOrderNotification(order);
+        });
+
         setIngredients((currentIngs) => {
           let updatedIngs = [...currentIngs];
           let updated = false;
@@ -238,6 +318,7 @@ export default function App() {
                   onOrderSubmitted={handleOrderSubmittedByClient}
                   whatsappPhone={config.whatsappPhone}
                   businessName={config.businessName}
+                  onGoToAdmin={() => setViewMode('admin')}
                 />
               </div>
             </div>
@@ -251,20 +332,8 @@ export default function App() {
                 onOrderSubmitted={handleOrderSubmittedByClient}
                 whatsappPhone={config.whatsappPhone}
                 businessName={config.businessName}
+                onGoToAdmin={() => setViewMode('admin')}
               />
-
-              {/* Secret developer door to return to mock environment (Only for owner preview) */}
-              <div className="fixed bottom-4 right-4 z-50">
-                <button
-                  onClick={() => {
-                    setVercelSimulation('split');
-                    alert('🛠️ Regresando al entorno de desarrollo del sistema. Ahora podés alternar entre las vistas cliente/administración.');
-                  }}
-                  className="bg-slate-900 text-white font-extrabold text-[10px] tracking-wide uppercase px-4 py-2.5 rounded-full shadow-2xl hover:bg-slate-800 border border-slate-700 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 animate-pulse"
-                >
-                  ⚙️ Volver a Desarrollador
-                </button>
-              </div>
             </div>
           </div>
         )
@@ -359,14 +428,14 @@ export default function App() {
         </div>
       ) : (
         /* ======================== ADMIN VIEW MOUNT ======================== */
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Main BurgerControl Nav headers */}
-          <nav className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 shadow-sm z-30">
+        <div className={`flex-1 flex flex-col overflow-hidden ${adminTheme === 'dark' ? 'dark' : ''}`}>
+          {/* Main admin navigation headers */}
+          <nav className="h-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 shrink-0 shadow-sm z-30 transition-colors">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center text-white font-black text-xl shadow-sm hover:rotate-6 transition-transform">
-                B
+                {config.businessName ? config.businessName.charAt(0).toUpperCase() : 'B'}
               </div>
-              <span className="text-xl font-bold tracking-tight text-slate-950 flex items-center gap-1.5 select-none">
+              <span className="text-xl font-bold tracking-tight text-slate-950 dark:text-slate-100 flex items-center gap-1.5 select-none transition-colors">
                 {config.businessName}
                 <span className="bg-red-650 bg-red-600 text-white text-[10px] font-black tracking-widest px-1.5 py-0.5 rounded-sm uppercase">
                   ADMIN
@@ -379,11 +448,26 @@ export default function App() {
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                   Canal de Pedidos Recibidos
                 </span>
-                <span className="text-xs font-bold text-green-600 flex items-center gap-1.5 bg-green-50 px-2.5 py-1 rounded-full border border-green-100">
+                <span className="text-xs font-bold text-green-600 dark:text-green-400 flex items-center gap-1.5 bg-green-50 dark:bg-green-950/20 px-2.5 py-1 rounded-full border border-green-100 dark:border-green-900/35 transition-colors">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                   Sincronizado Firebase Live • {orders.length} totales
                 </span>
               </div>
+
+              {/* Print Ticket/Comanda Master Trigger */}
+              <button
+                onClick={() => {
+                  setShowPrintModal(true);
+                  if (orders.length > 0) {
+                    setSelectedOrderIdToPrint(orders[orders.length - 1].id);
+                  }
+                }}
+                className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-355 dark:text-slate-350 dark:text-slate-300 hover:text-rose-500 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1"
+                title="Imprimir comanda térmica o consolidada"
+                id="btn-print-comanda"
+              >
+                <Printer className="w-3.5 h-3.5" /> Imprimir Comanda
+              </button>
 
               {/* Instant Security Lock button */}
               <button
@@ -392,14 +476,14 @@ export default function App() {
                   setViewMode('client');
                   alert('🔒 Sección de administración bloqueada con éxito.');
                 }}
-                className="px-3 py-1.5 border border-slate-200 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1"
+                className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-355 dark:text-slate-300 hover:text-red-500 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1"
                 title="Cerrar panel de administración y bloquear acceso"
                 id="btn-lock-admin"
               >
                 <Lock className="w-3.5 h-3.5" /> Bloquear
               </button>
 
-              <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-250 flex items-center justify-center font-bold text-sm text-slate-600 bg-slate-200">
+              <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-250 dark:border-slate-800 flex items-center justify-center font-bold text-sm text-slate-600 bg-slate-250 dark:bg-slate-900">
                 👨‍🍳
               </div>
             </div>
@@ -411,10 +495,14 @@ export default function App() {
               currentTab={currentTab}
               setCurrentTab={setCurrentTab}
               pendingCount={pendingOrdersCount}
+              adminTheme={adminTheme}
+              toggleAdminTheme={toggleAdminTheme}
+              notificationPermission={notificationPermission}
+              requestNotificationPermission={requestNotificationPermission}
             />
 
             {/* Selected Workspace Panel Display */}
-            <main className="flex-1 p-8 overflow-hidden flex flex-col bg-slate-50">
+            <main className="flex-1 p-8 overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentTab}
@@ -488,6 +576,151 @@ export default function App() {
                 </motion.div>
               </AnimatePresence>
             </main>
+          </div>
+        </div>
+      )}
+      {/* Modal De Impresión y Generación de Comandas en PDF */}
+      {showPrintModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-100 dark:border-slate-850 bg-slate-50 dark:bg-slate-900/40 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-rose-50 dark:bg-rose-950/45 text-rose-650 dark:text-rose-450 rounded-lg">
+                  <Printer className="w-5 h-5 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base font-sans">
+                    Impresión de Comandas
+                  </h3>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-sans uppercase tracking-wider font-extrabold">
+                    {config.businessName} • Cocina
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg transition-colors cursor-pointer text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-5 text-sm font-sans text-slate-705 dark:text-slate-300">
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Podés descargar los tickets formateados a un ancho de **rollo de 80mm** (apropiado para ticketeadoras térmicas de cocina) u hojas consolidadas **A4** para el despacho.
+              </p>
+
+              {/* Quick Options */}
+              <div className="space-y-3">
+                <h4 className="text-[11px] uppercase tracking-wider font-black text-slate-400 mb-1">
+                  Opciones rápidas de impresión
+                </h4>
+
+                {/* Option 1: Print Latest Order */}
+                {orders.length > 0 ? (
+                  <button
+                    onClick={() => {
+                      const latest = orders[orders.length - 1];
+                      generateOrderTicketPDF(latest, {
+                        businessName: config.businessName || 'El Carretero',
+                        whatsappPhone: config.whatsappPhone || '',
+                      });
+                    }}
+                    className="w-full text-left p-4 bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 hover:border-rose-500/20 rounded-xl transition duration-150 cursor-pointer group flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="font-bold text-rose-600 dark:text-rose-400 text-xs">
+                        ⚡ Imprimir Último Pedido Recibido
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                        #{orders[orders.length - 1].id.slice(0, 8).toUpperCase()} • {orders[orders.length - 1].customerName}
+                      </p>
+                    </div>
+                    <span className="text-[10px] uppercase font-extrabold px-2 py-1 bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 rounded transition duration-150 group-hover:scale-105">
+                      Ticket 80mm
+                    </span>
+                  </button>
+                ) : (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900/40 text-center text-slate-400 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-xs">
+                    No hay ningún pedido registrado para imprimir.
+                  </div>
+                )}
+
+                {/* Option 2: Active Orders report (Pending & Cooking) */}
+                <button
+                  onClick={() => {
+                    const activeOrders = orders.filter((o) => o.status === 'pending' || o.status === 'cooking');
+                    if (activeOrders.length === 0) {
+                      alert('No hay comandas activas ("Pendiente" o "En Cocina") en este momento.');
+                      return;
+                    }
+                    generateConsolidatedTicketsPDF(activeOrders, 'PENDIENTES Y EN COCINA');
+                  }}
+                  className="w-full text-left p-4 bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/10 hover:border-blue-500/20 rounded-xl transition duration-150 cursor-pointer group flex justify-between items-center"
+                >
+                  <div>
+                    <p className="font-bold text-blue-600 dark:text-blue-400 text-xs">
+                      📁 Reporte Consolidado de Cocina (Hoja A4)
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Agrupa todos los pedidos pendientes y en cocina en un reporte consolidado.
+                    </p>
+                  </div>
+                  <span className="text-[10px] uppercase font-extrabold px-2 py-1 bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 rounded transition duration-150 group-hover:scale-105">
+                    Descargar A4 ({orders.filter((o) => o.status === 'pending' || o.status === 'cooking').length} u.)
+                  </span>
+                </button>
+              </div>
+
+              {/* Option 3: Individual select dropdown */}
+              {orders.length > 0 && (
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-850 space-y-2">
+                  <h4 className="text-[11px] uppercase tracking-wider font-black text-slate-400 mb-1">
+                    Seleccionar un pedido específico
+                  </h4>
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedOrderIdToPrint}
+                      onChange={(e) => setSelectedOrderIdToPrint(e.target.value)}
+                      className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-200 outline-none focus:border-rose-500 transition duration-150"
+                    >
+                      {orders.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {new Date(o.createdAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} - {o.customerName} ({new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(o.totalPrice)}) [{o.status === 'pending' ? 'Pendiente' : o.status === 'cooking' ? 'Cocina' : o.status === 'delivered' ? 'Entregado' : 'Cancelado'}]
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      onClick={() => {
+                        const targetOrder = orders.find((o) => o.id === selectedOrderIdToPrint);
+                        if (targetOrder) {
+                          generateOrderTicketPDF(targetOrder, {
+                            businessName: config.businessName || 'El Carretero',
+                            whatsappPhone: config.whatsappPhone || '',
+                          });
+                        }
+                      }}
+                      className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white dark:text-slate-200 text-xs font-bold rounded-xl transition duration-150 cursor-pointer flex items-center justify-center shadow-sm"
+                    >
+                      Descargar Ticket
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 dark:border-slate-850 bg-slate-50 dark:bg-slate-900/40 flex justify-end gap-2">
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="px-4 py-2 bg-slate-250 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition duration-150 cursor-pointer"
+              >
+                Cerrar Ventana
+              </button>
+            </div>
           </div>
         </div>
       )}

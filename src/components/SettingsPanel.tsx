@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Smartphone, Check, HelpCircle, Save, QrCode, Clipboard } from 'lucide-react';
+import { Smartphone, Check, HelpCircle, Save, QrCode, Clipboard, Globe } from 'lucide-react';
 
 interface SettingsPanelProps {
   config: {
@@ -100,18 +100,32 @@ export default function SettingsPanel({ config, setConfig }: SettingsPanelProps)
 
             {/* App URL (QR Target) */}
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                URL Base del Menú Digital (QR URL base)
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  URL Base del Menú Digital (QR URL base)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentOrigin = window.location.origin;
+                    setQrUrl(currentOrigin);
+                  }}
+                  className="text-[10px] text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 px-2 py-0.5 rounded-md font-bold transition flex items-center gap-1 cursor-pointer"
+                  title="Autodetecta el dominio actual cargado en tu pestaña del navegador"
+                >
+                  <Globe className="w-3 h-3 text-red-500" /> Usar URL Actual
+                </button>
+              </div>
               <input
                 type="text"
                 required
                 value={qrUrl}
                 onChange={(e) => setQrUrl(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono text-slate-900 focus:ring-1 focus:ring-red-650"
+                placeholder="https://tu-menu-digital.vercel.app"
               />
-              <p className="text-[9px] text-slate-400 font-normal mt-1">
-                Dirección en producción donde está alojada tu webapp (ej: Vercel, Firebase Hosting o local).
+              <p className="text-[9px] text-slate-400 font-normal mt-1 leading-normal">
+                Dirección en producción donde está alojada tu webapp (ej: Vercel, Cloud Run o local). Garantiza que los celulares que escaneen el QR físico de las mesas sean redirigidos al dominio correcto y autodeclaren su mesa activa.
               </p>
             </div>
 
@@ -187,45 +201,14 @@ export default function SettingsPanel({ config, setConfig }: SettingsPanelProps)
                 {businessName.toUpperCase()}
               </div>
 
-              {/* High-fidelity Vector simulated QR code representation */}
-              <div className="w-40 h-40 bg-zinc-150 rounded border border-zinc-300 p-2 flex items-center justify-center relative bg-slate-50">
-                <svg className="w-full h-full" viewBox="0 0 100 100" fill="currentColor">
-                  {/* Outer boundaries / QR squares */}
-                  <rect x="5" y="5" width="22" height="22" rx="2" fill="black" />
-                  <rect x="8" y="8" width="16" height="16" rx="1" fill="white" />
-                  <rect x="11" y="11" width="10" height="10" fill="black" />
-
-                  <rect x="73" y="5" width="22" height="22" rx="2" fill="black" />
-                  <rect x="76" y="8" width="16" height="16" rx="1" fill="white" />
-                  <rect x="79" y="11" width="10" height="10" fill="black" />
-
-                  <rect x="5" y="73" width="22" height="22" rx="2" fill="black" />
-                  <rect x="8" y="76" width="16" height="16" rx="1" fill="white" />
-                  <rect x="11" y="79" width="10" height="10" fill="black" />
-
-                  {/* Interspersed simulated bit pattern points */}
-                  <rect x="35" y="5" width="6" height="6" fill="black" />
-                  <rect x="45" y="12" width="6" height="6" fill="black" />
-                  <rect x="60" y="8" width="6" height="6" fill="black" />
-                  <rect x="35" y="20" width="12" height="6" fill="black" />
-                  <rect x="55" y="20" width="6" height="12" fill="black" />
-
-                  <rect x="5" y="35" width="6" height="12" fill="black" />
-                  <rect x="15" y="45" width="12" height="6" fill="black" />
-                  <rect x="5" y="55" width="18" height="6" fill="black" />
-
-                  <rect x="73" y="35" width="6" height="6" fill="black" />
-                  <rect x="85" y="40" width="10" height="6" fill="black" />
-                  <rect x="80" y="50" width="6" height="12" fill="black" />
-
-                  <rect x="35" y="73" width="6" height="12" fill="black" />
-                  <rect x="45" y="85" width="12" height="6" fill="black" />
-                  <rect x="60" y="75" width="6" height="18" fill="black" />
-
-                  {/* Beautiful icon in the middle */}
-                  <rect x="42" y="42" width="16" height="16" rx="2" fill="red" />
-                  <text x="50" y="53" fill="white" fontSize="10" fontWeight="bold" textAnchor="middle">B</text>
-                </svg>
+              {/* Dynamic live-scannable QR code generated from api.qrserver.com */}
+              <div className="w-40 h-40 bg-white rounded border border-slate-200 p-1 flex items-center justify-center relative shadow-xs overflow-hidden">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(getFullQRUrl())}`}
+                  alt={`Código QR Mesa ${selectedMesaQR}`}
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
               </div>
 
               <div className="mt-3 text-center">

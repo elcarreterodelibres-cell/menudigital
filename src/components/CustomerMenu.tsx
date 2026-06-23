@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Product, CartItem, Order, AppUser } from '../types';
 import { 
   ShoppingBag, 
@@ -31,6 +31,7 @@ interface CustomerMenuProps {
   onOrderSubmitted: (newOrder: Order) => void;
   whatsappPhone: string;
   businessName: string;
+  onGoToAdmin?: () => void;
 }
 
 // Map high quality Unsplash images specifically for product illustration
@@ -72,11 +73,23 @@ const getProductImage = (productId: string, productName: string, category: strin
   return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&h=600&q=80';
 };
 
-export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone, businessName }: CustomerMenuProps) {
+export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone, businessName, onGoToAdmin }: CustomerMenuProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
+
+  // Dressing Selection Modal State
+  const [dressingProduct, setDressingProduct] = useState<Product | null>(null);
+  const [dressingOptions, setDressingOptions] = useState<{[key: string]: boolean}>({
+    'Mayonesa': true,
+    'Ketchup': true,
+    'Mostaza': true
+  });
+
+  // Side Dish Selection Modal State (for Category Platos)
+  const [sideDishProduct, setSideDishProduct] = useState<Product | null>(null);
+  const [selectedSideDishesMap, setSelectedSideDishesMap] = useState<{[key: string]: boolean}>({});
 
   // Profile avatar details state
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
@@ -99,6 +112,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
   const [customerContact, setCustomerContact] = useState<string>('');
   const [deliveryAddress, setDeliveryAddress] = useState<string>('');
   const [orderNotes, setOrderNotes] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('Mercado Pago');
 
   // Sync inputs when user logs in/out
   useEffect(() => {
@@ -112,6 +126,52 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
       setCustomerContact('');
     }
   }, [currentUser]);
+
+  // Dynamically auto-select mesa and local type if scanned from real QR URL query params
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const mesaParam = params.get('mesa');
+      if (mesaParam) {
+        const mesaNum = parseInt(mesaParam, 10);
+        if (!isNaN(mesaNum)) {
+          setTableNumber(`Mesa ${mesaNum}`);
+          setOrderType('local');
+        }
+      }
+    } catch (err) {
+      console.error('Error auto-detecting table from URL:', err);
+    }
+  }, []);
+
+  // Mouse drag scrolling state and handlers for categories carousel
+  const categoriesRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!categoriesRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - categoriesRef.current.offsetLeft);
+    setScrollLeft(categoriesRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !categoriesRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - categoriesRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5; // multiplier for scrolling speed
+    categoriesRef.current.scrollLeft = scrollLeft - walk;
+  };
 
   // Close profile dropdown when clicking outside
   useEffect(() => {
@@ -215,7 +275,25 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
     }
   };
 
-  const categories = ['Todos', ...Array.from(new Set(products.map((p) => p.category)))];
+  const preferredCategoryOrder = [
+    'Todos',
+    'Entradas',
+    'Minutas',
+    'Hamburguesas',
+    'Platos',
+    'Guarniciones',
+    'Acompañamientos',
+    'Bebidas'
+  ];
+
+  const categories = ['Todos', ...Array.from(new Set(products.map((p) => p.category)))].sort((a, b) => {
+    const idxA = preferredCategoryOrder.indexOf(a);
+    const idxB = preferredCategoryOrder.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.localeCompare(b);
+  });
 
   const filteredProducts = products.filter((p) => {
     const matchesCategory = selectedCategory === 'Todos' || p.category === selectedCategory;
@@ -224,8 +302,27 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
     return matchesCategory && matchesSearch;
   });
 
-  const cartTotal = cart.reduce((acc, curr) => acc + curr.product.price * curr.quantity, 0);
-  const cartCost = cart.reduce((acc, curr) => acc + curr.product.cost * curr.quantity, 0);
+  const getCartItemUnitPrice = (item: CartItem): number => {
+    let price = item.product.price;
+    if (item.selectedSideDishes && item.selectedSideDishes.length > 1) {
+      const sortedExtras = [...item.selectedSideDishes].sort((a, b) => b.price - a.price);
+      const extraPrice = sortedExtras.slice(1).reduce((acc, curr) => acc + curr.price, 0);
+      price += extraPrice;
+    }
+    return price;
+  };
+
+  const getCartItemUnitCost = (item: CartItem): number => {
+    let cost = item.product.cost;
+    if (item.selectedSideDishes && item.selectedSideDishes.length > 0) {
+      const sideDishesCost = item.selectedSideDishes.reduce((acc, curr) => acc + curr.cost, 0);
+      cost += sideDishesCost;
+    }
+    return cost;
+  };
+
+  const cartTotal = cart.reduce((acc, curr) => acc + getCartItemUnitPrice(curr) * curr.quantity, 0);
+  const cartCost = cart.reduce((acc, curr) => acc + getCartItemUnitCost(curr) * curr.quantity, 0);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -235,28 +332,128 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
     }).format(val);
   };
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, selectedDressings?: string[]) => {
     setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
+      const dressingsKey = JSON.stringify(selectedDressings || []);
+      const existing = prev.find(
+        (item) =>
+          item.product.id === product.id &&
+          JSON.stringify(item.selectedDressings || []) === dressingsKey
+      );
       if (existing) {
         return prev.map((item) =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.product.id === product.id &&
+          JSON.stringify(item.selectedDressings || []) === dressingsKey
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: 1, selectedDressings }];
+    });
+  };
+
+  const addPlateToCart = (product: Product, sideDishes: { id: string; name: string; price: number; cost: number }[]) => {
+    setCart((prev) => {
+      const sideDishesKey = JSON.stringify(sideDishes.map(d => d.id).sort() || []);
+      const existing = prev.find(
+        (item) =>
+          item.product.id === product.id &&
+          JSON.stringify((item.selectedSideDishes || []).map(d => d.id).sort()) === sideDishesKey
+      );
+      if (existing) {
+        return prev.map((item) =>
+          item.product.id === product.id &&
+          JSON.stringify((item.selectedSideDishes || []).map(d => d.id).sort()) === sideDishesKey
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { product, quantity: 1, selectedSideDishes: sideDishes }];
     });
   };
 
   const updateQuantity = (productId: string, delta: number) => {
-    setCart((prev) =>
-      prev
-        .map((item) => (item.product.id === productId ? { ...item, quantity: item.quantity + delta } : item))
-        .filter((item) => item.quantity > 0)
-    );
+    setCart((prev) => {
+      // Find items matched to productId
+      const matches = prev.filter((item) => item.product.id === productId);
+      if (matches.length === 0) return prev;
+      
+      // Target the last added item to increment/decrement
+      const target = matches[matches.length - 1];
+      const targetDressingsKey = JSON.stringify(target.selectedDressings || []);
+      const targetSideDishesKey = JSON.stringify((target.selectedSideDishes || []).map(d => d.id).sort());
+
+      return prev
+        .map((item) =>
+          item.product.id === productId &&
+          JSON.stringify(item.selectedDressings || []) === targetDressingsKey &&
+          JSON.stringify((item.selectedSideDishes || []).map(d => d.id).sort()) === targetSideDishesKey
+            ? { ...item, quantity: item.quantity + delta }
+            : item
+        )
+        .filter((item) => item.quantity > 0);
+    });
   };
 
   const removeFromCart = (productId: string) => {
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
+  };
+
+  const handleAddToCartClick = (p: Product) => {
+    if (p.category === 'Hamburguesas' || p.category === 'Minutas') {
+      setDressingProduct(p);
+      setDressingOptions({
+        'Mayonesa': true,
+        'Ketchup': true,
+        'Mostaza': true
+      });
+    } else if (p.category === 'Platos') {
+      setSideDishProduct(p);
+      // Auto-select the first available side dish!
+      const availableGuarniciones = products.filter(g => g.category === 'Guarniciones');
+      if (availableGuarniciones.length > 0) {
+        setSelectedSideDishesMap({
+          [availableGuarniciones[0].id]: true
+        });
+      } else {
+        setSelectedSideDishesMap({});
+      }
+    } else {
+      addToCart(p, []);
+    }
+  };
+
+  const confirmAddWithDressings = () => {
+    if (!dressingProduct) return;
+    const selected = Object.entries(dressingOptions)
+      .filter(([_, enabled]) => enabled)
+      .map(([name]) => name);
+    addToCart(dressingProduct, selected);
+    setDressingProduct(null);
+  };
+
+  const confirmAddWithSideDishes = () => {
+    if (!sideDishProduct) return;
+    
+    // Find all items selected
+    const selectedList = Object.entries(selectedSideDishesMap)
+      .filter(([_, enabled]) => enabled)
+      .map(([id]) => products.find(p => p.id === id))
+      .filter((p): p is Product => !!p)
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        cost: p.cost
+      }));
+      
+    if (selectedList.length === 0) {
+      alert('Por favor, seleccioná al menos 1 guarnición para tu plato.');
+      return;
+    }
+    
+    addPlateToCart(sideDishProduct, selectedList);
+    setSideDishProduct(null);
   };
 
   const handleSendOrder = (e: React.FormEvent) => {
@@ -271,29 +468,42 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
     }
 
     const orderId = `#QR-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newOrderItems = cart.map((it) => ({
-      productId: it.product.id,
-      productName: it.product.name,
-      quantity: it.quantity,
-      price: it.product.price,
-      cost: it.product.cost,
-    }));
+    const newOrderItems = cart.map((it) => {
+      const dressingsStr = it.selectedDressings && it.selectedDressings.length > 0
+        ? ` (Aderezos: ${it.selectedDressings.join(', ')})`
+        : '';
+      const sideDishesStr = it.selectedSideDishes && it.selectedSideDishes.length > 0
+        ? ` (Guarnición: ${it.selectedSideDishes.map(d => d.name).join(', ')})`
+        : '';
+      return {
+        productId: it.product.id,
+        productName: `${it.product.name}${dressingsStr}${sideDishesStr}`,
+        quantity: it.quantity,
+        price: getCartItemUnitPrice(it),
+        cost: getCartItemUnitCost(it),
+      };
+    });
 
     const finalCustomerName = customerName.trim() || `Mesa ${tableNumber.replace(/^\D+/g, '') || tableNumber}`;
+
+    const costOfDelivery = orderType === 'delivery' ? 1200 : 0;
 
     const finalOrder: Order = {
       id: orderId,
       customerName: `${finalCustomerName} ${orderType === 'local' ? `(${tableNumber})` : ''}`,
       items: newOrderItems,
-      totalPrice: cartTotal,
+      totalPrice: cartTotal + costOfDelivery,
       totalCost: cartCost,
-      netProfit: cartTotal - cartCost,
+      netProfit: (cartTotal + costOfDelivery) - cartCost,
       createdAt: new Date().toISOString(),
       status: 'pending',
       viaWhatsApp: true,
       orderType,
       customerContact: customerContact || undefined,
       deliveryAddress: orderType === 'delivery' ? deliveryAddress : undefined,
+      notes: orderNotes.trim() || undefined,
+      paymentMethod: paymentMethod,
+      deliveryCost: costOfDelivery || undefined,
     };
 
     // Text format comanda for WhatsApp Dispatcher
@@ -310,6 +520,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
     if (customerContact) {
       text += `📞 *Teléfono:* ${customerContact}\n`;
     }
+    text += `💳 *Método de Pago:* ${paymentMethod}\n`;
     if (orderNotes.trim()) {
       text += `✍️ *Aclaraciones:* _"${orderNotes}"_\n`;
     }
@@ -317,10 +528,20 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
     text += `🛍️ *PRODUCTOS SELECCIONADOS:*\n`;
 
     cart.forEach((it) => {
-      text += `• *${it.quantity}x* ${it.product.name} (${formatCurrency(it.product.price * it.quantity)})\n`;
+      const dressingsStr = it.selectedDressings && it.selectedDressings.length > 0
+        ? `\n   └ _Aderezos: ${it.selectedDressings.join(', ')}_`
+        : '';
+      const sideDishesStr = it.selectedSideDishes && it.selectedSideDishes.length > 0
+        ? `\n   └ _Guarnición: ${it.selectedSideDishes.map(d => d.name).join(', ')}_`
+        : '';
+      const customUnitPrice = getCartItemUnitPrice(it);
+      text += `• *${it.quantity}x* ${it.product.name} ${dressingsStr}${sideDishesStr} (${formatCurrency(customUnitPrice * it.quantity)})\n`;
     });
 
-    text += `\n💰 *Total del Pedido:* ${formatCurrency(cartTotal)}\n`;
+    if (costOfDelivery > 0) {
+      text += `🛵 *Costo de Envío:* ${formatCurrency(costOfDelivery)}\n`;
+    }
+    text += `\n💰 *Total del Pedido:* ${formatCurrency(cartTotal + costOfDelivery)}\n`;
     text += `------------------------------------------\n`;
     text += `💬 Enviar este mensaje para iniciar la preparación en cocina.`;
 
@@ -340,16 +561,23 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
       {/* 1. FIXED & COMPACT NAVBAR (Cabecera Optimizada) */}
       <header className="sticky top-0 bg-[#0d0d0f]/90 backdrop-blur-md z-40 border-b border-zinc-850 h-14 md:h-16 flex items-center justify-between px-4 md:px-8 shadow-lg shrink-0">
         <div className="flex items-center gap-2">
-          {/* Flame mark representing BurgerControl / Gourmet Burgers */}
+          {/* Brand logo custom representation display */}
           <div className="w-8 h-8 rounded-lg bg-red-650 bg-red-650 flex items-center justify-center text-white font-display font-black text-lg animate-pulse shadow-sm">
             <Flame className="w-5 h-5 animate-bounce fill-white/10" />
           </div>
-          <span className="text-base md:text-xl font-display font-black tracking-tight text-white flex items-center gap-1.5 select-none uppercase">
-            {businessName}
-            <span className="hidden sm:inline bg-zinc-800 text-[8px] tracking-widest px-2 py-0.5 rounded text-red-500 font-extrabold border border-zinc-700">
-              Gourmet
+          <div className="flex flex-col justify-center">
+            <div className="flex items-center gap-1.5 leading-none">
+              <span className="text-sm md:text-lg font-display font-black tracking-tight text-white select-none uppercase">
+                {businessName}
+              </span>
+              <span className="hidden sm:inline bg-zinc-800 text-[8px] tracking-widest px-1.5 py-0.5 rounded text-red-500 font-extrabold border border-zinc-700 uppercase">
+                Gourmet
+              </span>
+            </div>
+            <span className="text-[9px] font-bold text-red-500 tracking-wider uppercase leading-none mt-0.5">
+              Lo de julia
             </span>
-          </span>
+          </div>
         </div>
 
         {/* Dynamic User Profile Status Dropdown (ONLY visible/expanded upon click) */}
@@ -400,7 +628,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               ) : (
                 <div className="space-y-3">
                   <div className="text-center pb-2">
-                    <p className="text-xs text-zinc-400 font-bold">¡Unite a BurgerControl!</p>
+                    <p className="text-xs text-zinc-400 font-bold">¡Registrate con nosotros!</p>
                     <p className="text-[10px] text-zinc-500 mt-1">Registrate en Firebase Auth para guardar tu dirección, sumar cupones y pedir más rápido.</p>
                   </div>
                   <button
@@ -435,20 +663,33 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
         </div>
 
         {/* Categories Carousel - Rounded Pills with mobile touch scroll */}
-        <div className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-none max-w-md md:max-w-xl mx-auto justify-start sm:justify-center">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer border ${
-                selectedCategory === cat
-                  ? 'bg-red-600 border-red-600 text-white shadow-md shadow-red-950/20 scale-105'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-850 hover:text-white'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        <div className="relative w-full max-w-4xl mx-auto overflow-hidden px-1 mb-2">
+          {/* Subtle fade edges for overflow indicators */}
+          <div className="absolute left-0 top-0 bottom-3 w-6 bg-gradient-to-r from-[#121212] to-transparent pointer-events-none z-10" />
+          <div className="absolute right-0 top-0 bottom-3 w-6 bg-gradient-to-l from-[#121212] to-transparent pointer-events-none z-10" />
+
+          <div
+            ref={categoriesRef}
+            onMouseDown={handleMouseDown}
+            onMouseLeave={handleMouseLeave}
+            onMouseUp={handleMouseUp}
+            onMouseMove={handleMouseMove}
+            className="flex gap-2 overflow-x-auto pb-3 pt-1 px-4 scrollbar-none w-full justify-start lg:justify-center select-none whitespace-nowrap active:cursor-grabbing cursor-grab"
+          >
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4.5 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-xs font-bold shrink-0 transition-all cursor-pointer border ${
+                  selectedCategory === cat
+                    ? 'bg-red-600 border-red-600 text-white shadow-md shadow-red-950/25 scale-[1.02] font-extrabold'
+                    : 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:bg-zinc-850 hover:text-zinc-200'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -479,8 +720,14 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                       alt={p.name}
                       onError={(e) => {
                         e.currentTarget.onerror = null;
-                        // Beautiful warm gourmet fallback burger image on error (like Agua Mineral with broken link)
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&h=600&q=80';
+                        const cat = p.category.toLowerCase();
+                        if (cat.includes('bebida')) {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1497534446932-c925b458314e?auto=format&fit=crop&w=600&h=600&q=80';
+                        } else if (cat.includes('acompañamiento') || cat.includes('papas')) {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&w=600&h=600&q=80';
+                        } else {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&h=600&q=80';
+                        }
                       }}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       referrerPolicy="no-referrer"
@@ -534,7 +781,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                           </div>
                         ) : (
                           <button
-                            onClick={() => addToCart(p)}
+                            onClick={() => handleAddToCartClick(p)}
                             className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-red-650 hover:bg-red-700 text-white rounded-lg text-[10px] sm:text-xs font-bold tracking-wide flex items-center gap-1 shadow-md shadow-red-950/30 transition-all active:scale-95 cursor-pointer"
                           >
                             <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -550,6 +797,24 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
           </div>
         )}
       </main>
+
+      {/* Discrete Footer with Admin Lock */}
+      <footer className="mt-auto py-10 border-t border-zinc-900 bg-[#0c0c0f] text-center text-zinc-600 font-sans text-[11px] select-none pb-24">
+        <p className="font-bold text-zinc-500 uppercase tracking-widest mb-1">
+          {businessName} • Carta Digital QR
+        </p>
+        <p className="font-medium text-zinc-650 text-zinc-500">
+          Desarrollado con sincronización en tiempo real. Todos los derechos reservados.
+        </p>
+        {onGoToAdmin && (
+          <button
+            onClick={onGoToAdmin}
+            className="mt-4 px-3 py-1.5 bg-zinc-900/60 hover:bg-zinc-850 hover:text-zinc-400 border border-zinc-850 hover:border-zinc-800 text-zinc-500 rounded-md transition-all font-bold cursor-pointer inline-flex items-center gap-1 active:scale-95 text-[9px] uppercase tracking-wider"
+          >
+            <Lock className="w-2.5 h-2.5 text-zinc-550" /> Acceso Administración
+          </button>
+        )}
+      </footer>
 
       {/* 4. PERSISTENT FLOATING BASKET PANEL */}
       {cart.length > 0 && (
@@ -688,6 +953,29 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                 />
               </div>
 
+              {/* Payment Method */}
+              <div>
+                <label className="block text-zinc-400 text-[10px] font-black tracking-wider uppercase mb-1.5">
+                  Método de Pago Preferido *
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Mercado Pago', 'Efectivo', 'Tarjeta'].map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => setPaymentMethod(method)}
+                      className={`py-2.5 px-1 text-center rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        paymentMethod === method
+                          ? 'bg-red-600/25 border-red-500 text-red-400 font-black shadow-md shadow-red-950/40'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                      }`}
+                    >
+                      {method === 'Mercado Pago' ? '📱 MP' : method === 'Efectivo' ? '💵 Efectivo' : '💳 Tarjeta'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Extra instructions */}
               <div>
                 <label className="block text-zinc-400 text-[10px] font-black tracking-wider uppercase mb-1.5">
@@ -702,14 +990,57 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                 />
               </div>
 
-              {/* Account summary details */}
-              <div className="bg-zinc-900 p-3.5 rounded-xl border border-zinc-800 space-y-1">
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Resumen de Cuenta</p>
-                <div className="flex justify-between font-bold text-xs pt-1.5">
-                  <span className="text-zinc-450">Subtotal de Compra:</span>
-                  <span className="text-white text-sm font-black">{formatCurrency(cartTotal)}</span>
+              {/* Account summary details with full interactive list of chosen items */}
+              <div className="bg-zinc-900 p-3.5 rounded-xl border border-zinc-800 space-y-2">
+                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest border-b border-zinc-800 pb-1">
+                  Resumen de Cuenta
+                </p>
+                <div className="max-h-28 overflow-y-auto divide-y divide-zinc-805 divide-zinc-800/40 pr-1 space-y-2">
+                  {cart.map((it, idx) => {
+                    const customUnitPrice = getCartItemUnitPrice(it);
+                    return (
+                      <div key={idx} className="pt-2 flex justify-between items-start gap-2 text-[11px]">
+                        <div className="flex-1">
+                          <p className="text-zinc-200 font-extrabold font-sans">
+                            {it.quantity}x {it.product.name}
+                          </p>
+                          {it.selectedDressings && it.selectedDressings.length > 0 && (
+                            <p className="text-[10px] text-red-400 font-medium pl-1 mt-0.5">
+                              Aderezos: {it.selectedDressings.join(', ')}
+                            </p>
+                          )}
+                          {it.selectedSideDishes && it.selectedSideDishes.length > 0 && (
+                            <p className="text-[10px] text-amber-400 font-semibold pl-1 mt-0.5">
+                              Guarnición: {it.selectedSideDishes.map(d => d.name).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-zinc-400 font-mono">
+                          {formatCurrency(customUnitPrice * it.quantity)}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-                <p className="text-[9px] text-zinc-500 mt-1.5 italic">El costo de envío (si corresponde) se acuerda con el local.</p>
+                <div className="space-y-1 pt-2 border-t border-zinc-805 border-zinc-800/60 font-sans text-xs">
+                  <div className="flex justify-between font-medium">
+                    <span className="text-zinc-400">Subtotal de Compra:</span>
+                    <span className="text-zinc-200 font-mono">{formatCurrency(cartTotal)}</span>
+                  </div>
+                  {orderType === 'delivery' && (
+                    <div className="flex justify-between font-medium text-amber-500">
+                      <span>Costo de Envío:</span>
+                      <span className="font-mono">{formatCurrency(1200)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-sm pt-2.5 border-t border-zinc-800/80">
+                    <span className="text-zinc-200">Total a Pagar:</span>
+                    <span className="text-red-500 font-black">{formatCurrency(cartTotal + (orderType === 'delivery' ? 1200 : 0))}</span>
+                  </div>
+                </div>
+                {orderType === 'delivery' && (
+                  <p className="text-[9px] text-zinc-500 italic mt-1 leading-relaxed">El total ya incluye el costo de envío tarifado para entregas a domicilio.</p>
+                )}
               </div>
 
               {/* WhatsApp dispatcher */}
@@ -962,6 +1293,190 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
             <div className="bg-[#141417] p-3 text-[8px] text-zinc-500 text-center font-normal leading-relaxed border-t border-zinc-850">
               Google comparte de manera segura tu nombre, dirección de correo electrónico y foto de perfil con {businessName}.
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== DRESSING SELECTION MODAL ==================== */}
+      {dressingProduct && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#141417] border border-zinc-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl animate-scale-up text-zinc-150">
+            <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4 font-sans">
+              <h3 className="font-display font-black text-white text-sm flex items-center gap-1.5 uppercase">
+                <Sparkles className="w-4 h-4 text-red-500 animate-pulse" />
+                Personalizar {dressingProduct.name}
+              </h3>
+              <button
+                onClick={() => setDressingProduct(null)}
+                className="text-zinc-400 hover:text-white font-bold text-xs bg-zinc-850 px-3 py-1 rounded-full cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+
+            <p className="text-[11px] text-zinc-400 font-medium mb-4 leading-relaxed font-sans">
+              Selecciona qué aderezos te gustaría sumarle a tu pedido:
+            </p>
+
+            <div className="space-y-2.5 mb-5 font-sans">
+              {Object.keys(dressingOptions).map((optionName) => (
+                <label
+                  key={optionName}
+                  className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                    dressingOptions[optionName]
+                      ? 'bg-red-950/20 border-red-900/60 text-white'
+                      : 'bg-zinc-900/50 border-zinc-800/80 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 font-sans">
+                    <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
+                      dressingOptions[optionName]
+                        ? 'bg-red-600 border-red-600 text-white'
+                        : 'border-zinc-700 bg-zinc-850'
+                    }`}>
+                      {dressingOptions[optionName] && <Check className="w-3 h-3 stroke-[3]" />}
+                    </div>
+                    <span className="text-[12px] font-extrabold">{optionName}</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={dressingOptions[optionName]}
+                    onChange={(e) => setDressingOptions(prev => ({
+                      ...prev,
+                      [optionName]: e.target.checked
+                    }))}
+                  />
+                </label>
+              ))}
+            </div>
+
+            <button
+              onClick={confirmAddWithDressings}
+              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-950/30 transition-all active:scale-95"
+            >
+              <span>Añadir a la Canasta</span>
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== PLATE SIDE-DISH SELECTION MODAL ==================== */}
+      {sideDishProduct && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#141417] border border-zinc-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl animate-scale-up text-zinc-150">
+            <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4 font-sans">
+              <h3 className="font-display font-black text-white text-sm flex items-center gap-1.5 uppercase">
+                <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+                Personalizar {sideDishProduct.name}
+              </h3>
+              <button
+                onClick={() => setSideDishProduct(null)}
+                className="text-zinc-400 hover:text-white font-bold text-xs bg-zinc-850 px-3 py-1 rounded-full cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+
+            <p className="text-[11px] text-zinc-400 font-medium mb-4 leading-relaxed font-sans">
+              Elegí **1 o más guarniciones** para tu plato. La primera guarnición ya está **incluida gratis** en el valor del plato. Las adicionales se suman al precio base.
+            </p>
+
+            <div className="max-h-60 overflow-y-auto space-y-2.5 mb-5 pr-1 select-none font-sans">
+              {products.filter(g => g.category === 'Guarniciones').map((guarnicion) => {
+                const isSelected = !!selectedSideDishesMap[guarnicion.id];
+                
+                // Determine price label dynamically
+                const selectedGuarniciones = products.filter(g => g.category === 'Guarniciones' && selectedSideDishesMap[g.id]);
+                const sortedSelected = [...selectedGuarniciones].sort((a, b) => b.price - a.price);
+                const freeGuarnicionId = sortedSelected.length > 0 ? sortedSelected[0].id : null;
+                
+                let priceLabel = '';
+                if (isSelected) {
+                  if (guarnicion.id === freeGuarnicionId) {
+                    priceLabel = '🔥 Incluida (Gratis)';
+                  } else {
+                    priceLabel = `+ ${formatCurrency(guarnicion.price)}`;
+                  }
+                } else {
+                  priceLabel = formatCurrency(guarnicion.price);
+                }
+
+                return (
+                  <label
+                    key={guarnicion.id}
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                      isSelected
+                        ? 'bg-amber-950/20 border-amber-900/60 text-white'
+                        : 'bg-zinc-900/50 border-zinc-800/80 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 font-sans">
+                      <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
+                        isSelected
+                          ? 'bg-amber-600 border-amber-600 text-white'
+                          : 'border-zinc-700 bg-zinc-850'
+                      }`}>
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[12px] font-extrabold">{guarnicion.name}</span>
+                        {guarnicion.description && (
+                          <span className="text-[9px] text-zinc-500 font-medium line-clamp-1">{guarnicion.description}</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
+                      isSelected && guarnicion.id === freeGuarnicionId
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        : isSelected
+                        ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        : 'bg-zinc-800 text-zinc-400'
+                    }`}>
+                      {priceLabel}
+                    </span>
+
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        setSelectedSideDishesMap(prev => {
+                          const updated = {
+                            ...prev,
+                            [guarnicion.id]: e.target.checked
+                          };
+                          return updated;
+                        });
+                      }}
+                    />
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Price Preview */}
+            <div className="mb-4 bg-zinc-900/60 border border-zinc-850/60 p-3 rounded-xl flex justify-between items-center text-xs">
+              <span className="text-zinc-400 font-bold font-sans">Precio Total del Plato:</span>
+              <span className="text-white font-mono font-black text-sm">
+                {(() => {
+                  const selectedGuarniciones = products.filter(g => g.category === 'Guarniciones' && selectedSideDishesMap[g.id]);
+                  const sortedSelected = [...selectedGuarniciones].sort((a, b) => b.price - a.price);
+                  const additionalCost = sortedSelected.slice(1).reduce((sum, g) => sum + g.price, 0);
+                  return formatCurrency(sideDishProduct.price + additionalCost);
+                })()}
+              </span>
+            </div>
+
+            <button
+              onClick={confirmAddWithSideDishes}
+              className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-950/30 transition-all active:scale-95"
+            >
+              <span>Añadir a la Canasta</span>
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
