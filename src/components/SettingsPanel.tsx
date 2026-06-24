@@ -25,7 +25,7 @@ export default function SettingsPanel({ config, setConfig }: SettingsPanelProps)
   const [businessName, setBusinessName] = useState(config.businessName);
   const [qrUrl, setQrUrl] = useState(config.qrUrl);
   const [tablesCount, setTablesCount] = useState(config.tablesCount);
-  const [adminPin, setAdminPin] = useState(config.adminPin || '1234');
+  const [adminPin, setAdminPin] = useState(config.adminPin || '1532');
   const [selectedMesaQR, setSelectedMesaQR] = useState(1);
   const [showCopySuccess, setShowCopySuccess] = useState(false);
 

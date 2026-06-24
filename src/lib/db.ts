@@ -180,7 +180,7 @@ class FirestoreSimulator {
       businessName: 'El Carretero',
       qrUrl: window.location.origin,
       tablesCount: 12,
-      adminPin: '1234',
+      adminPin: '1532',
     });
     if (config.businessName === 'BurgerControl') {
       config.businessName = 'El Carretero';
@@ -188,6 +188,10 @@ class FirestoreSimulator {
     }
     if (config.whatsappPhone === '5493415551234') {
       config.whatsappPhone = '5493772303777';
+      this.saveBusinessConfig(config);
+    }
+    if (config.adminPin === '1234') {
+      config.adminPin = '1532';
       this.saveBusinessConfig(config);
     }
     return config;

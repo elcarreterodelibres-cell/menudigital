@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import Sidebar from './components/Sidebar';
 import AdminPanel from './components/AdminPanel';
@@ -17,6 +17,76 @@ import { generateOrderTicketPDF, generateConsolidatedTicketsPDF } from './utils/
 
 export default function App() {
   const toast = useToast();
+  
+  // Cinematographic Intro State & Images Array
+  const [introStage, setIntroStage] = useState<number>(0);
+  
+  const introImages = [
+    {
+      id: 0,
+      url: '/input_file_3.png', // lejos
+      alt: 'El Carretero - Lo de Julia (Lejos)',
+      titleEs: 'El Carretero - Lo de Julia',
+      titlePt: 'El Carretero - Lo de Julia',
+      descEs: 'Nuestra fachada campestre te da la bienvenida con nuestro puente de madera.',
+      descPt: 'Nossa fachada campestre lhe dá as boas-vindas com nossa ponte de madeira.'
+    },
+    {
+      id: 1,
+      url: '/input_file_4.png', // puerta
+      alt: 'El Carretero - Lo de Julia (Puerta)',
+      titleEs: 'La Entrada',
+      titlePt: 'A Entrada',
+      descEs: 'Pasá adelante por nuestro porche rústico con paredes de ladrillo y calidez familiar.',
+      descPt: 'Entre pela nossa varanda rústica com paredes de tijolos e aconchego familiar.'
+    },
+    {
+      id: 2,
+      url: '/input_file_0.png', // adentro 1
+      alt: 'El Carretero - Lo de Julia (Adentro 1)',
+      titleEs: 'Nuestro Salón',
+      titlePt: 'Nosso Salão',
+      descEs: 'Ambiente acogedor de madera y cómodos boxes para compartir los mejores momentos.',
+      descPt: 'Ambiente acolhedor de madeira e boxes confortáveis para compartilhar os melhores momentos.'
+    },
+    {
+      id: 3,
+      url: '/input_file_1.png', // adentro 2
+      alt: 'El Carretero - Lo de Julia (Adentro 2)',
+      titleEs: 'Rincón de Campo',
+      titlePt: 'Canto de Campo',
+      descEs: 'Detalles únicos con troncos rústicos, macramé e iluminación cálida.',
+      descPt: 'Detalhes exclusivos com troncos rústicos, macramê e iluminação quente.'
+    },
+    {
+      id: 4,
+      url: '/input_file_2.png', // adentro 3
+      alt: 'El Carretero - Lo de Julia (Adentro 3)',
+      titleEs: 'Tu Mesa te Espera',
+      titlePt: 'Sua Mesa te Espera',
+      descEs: 'Un espacio amplio y luminoso rodeado de naturaleza y frescura.',
+      descPt: 'Um espaço amplo e luminoso cercado por natureza e frescor.'
+    }
+  ];
+
+  const [language, setLanguage] = useState<'es' | 'pt'>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem('customer_language');
+      if (saved === 'es' || saved === 'pt') return saved;
+    }
+    return 'es';
+  });
+
+  // Automatically cycle through intro stages: 1.5s per image
+  useEffect(() => {
+    if (introStage < 5) {
+      const timer = setTimeout(() => {
+        setIntroStage((prev) => prev + 1);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [introStage]);
+
   const [viewMode, setViewMode] = useState<'client' | 'admin'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -114,7 +184,7 @@ export default function App() {
       
       // Auto unlock when 4 digits are typed
       if (nextPin.length === 4) {
-        const correctPin = config.adminPin || '1234';
+        const correctPin = config.adminPin || '1532';
         if (nextPin === correctPin) {
           setIsAdminUnlocked(true);
           setAdminPIN('');
@@ -239,6 +309,60 @@ export default function App() {
               businessName={config.businessName}
               onGoToAdmin={() => setViewMode('admin')}
             />
+
+            {/* Cinematographic Intro Overlay */}
+            {introStage < 5 && (
+              <div className="absolute inset-0 bg-[#0d0d0f] flex items-center justify-center overflow-hidden z-50">
+                {introImages.map((image) => (
+                  <div
+                    key={image.id}
+                    className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
+                      introStage === image.id ? 'opacity-100 scale-105' : 'opacity-0 scale-100 pointer-events-none'
+                    }`}
+                  >
+                    <img
+                      src={image.url}
+                      alt={image.alt}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/60" />
+                    
+                    <div className="absolute bottom-24 left-8 md:left-16 max-w-lg text-left z-10 animate-fade-in">
+                      <span className="text-[10px] font-mono tracking-[0.25em] text-[#C5A059] uppercase block mb-2 font-black">
+                        {config.businessName || 'El Carretero'} Experience
+                      </span>
+                      <h1 className="text-2xl md:text-4xl font-display font-black text-white uppercase tracking-tight leading-none">
+                        {language === 'pt' ? image.titlePt : image.titleEs}
+                      </h1>
+                      <p className="text-xs text-zinc-400 mt-2 font-medium">
+                        {language === 'pt' ? image.descPt : image.descEs}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Progress Indicators */}
+                <div className="absolute bottom-12 left-8 md:left-16 flex gap-2 z-25">
+                  {introImages.map((image) => (
+                    <div
+                      key={image.id}
+                      className={`h-1.5 rounded-full transition-all duration-500 ${
+                        introStage === image.id ? 'w-10 bg-[#C5A059]' : 'w-2.5 bg-zinc-700'
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {/* Saltar Intro Button */}
+                <button
+                  onClick={() => setIntroStage(5)}
+                  className="absolute bottom-10 right-8 z-30 px-5 py-2.5 border border-[#C5A059] text-[#C5A059] hover:bg-[#C5A059] hover:text-[#121212] rounded-xl text-xs font-black tracking-wider uppercase shadow-lg shadow-[#C5A059]/10 transition-all active:scale-95 cursor-pointer"
+                >
+                  {language === 'pt' ? 'Pular Intro' : 'Saltar Intro'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : !isAdminUnlocked ? (
@@ -312,13 +436,6 @@ export default function App() {
               >
                 Borrar
               </button>
-            </div>
-
-            {/* Factories override display helper */}
-            <div className="bg-slate-900 p-2 text-center w-full mb-4 rounded-xl border border-slate-850">
-              <span className="text-[9px] text-slate-400 uppercase tracking-wider font-extrabold block">🔑 PIN DE TESTEO DE FÁBRICA</span>
-              <span className="text-xs font-mono font-bold text-red-500 mt-0.5 block">{config.adminPin || '1234'}</span>
-              <span className="text-[8px] text-slate-500 block leading-tight mt-0.5">Podés modificarlo en la solapa "Configuración QR" si iniciás sesión.</span>
             </div>
 
             {/* Back button to customers layout */}

@@ -76,7 +76,7 @@ const getProductImage = (productId: string, productName: string, category: strin
   return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&h=600&q=80';
 };
 
-export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone, businessName, onGoToAdmin }: CustomerMenuProps) {
+export default function CustomerMenu({ products: originalProducts, onOrderSubmitted, whatsappPhone, businessName, onGoToAdmin }: CustomerMenuProps) {
   const toast = useToast();
   const [submittedOrder, setSubmittedOrder] = useState<Order | null>(null);
   const [lastWhatsAppLink, setLastWhatsAppLink] = useState<string>('');
@@ -84,6 +84,550 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
+
+  // Language state (ES / PT)
+  const [language, setLanguage] = useState<'es' | 'pt'>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem('customer_language');
+      if (saved === 'es' || saved === 'pt') return saved;
+    }
+    return 'es';
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('customer_language', language);
+    }
+  }, [language]);
+
+  // UI translations dictionaries
+  const translations: {[key: string]: {[lang in 'es' | 'pt']: string}} = {
+    'Buscar hamburguesa, papas, bebidas...': {
+      es: 'Buscar hamburguesa, papas, bebidas...',
+      pt: 'Buscar hambúrguer, batatas, bebidas...'
+    },
+    'No se encontraron delicias con estos filtros.': {
+      es: 'No se encontraron delicias con estos filtros.',
+      pt: 'Nenhuma delícia encontrada com estes filtros.'
+    },
+    'Probá borrando el texto de la barra de búsqueda o eligiendo otra sección del menú.': {
+      es: 'Probá borrando el texto de la barra de búsqueda o eligiendo otra sección del menú.',
+      pt: 'Tente limpar o texto de busca ou escolher outra seção do cardápio.'
+    },
+    'Agregar': {
+      es: 'Agregar',
+      pt: 'Adicionar'
+    },
+    'Mi Canasta': {
+      es: 'Mi Canasta',
+      pt: 'Minha Sacola'
+    },
+    'Generar Pedido': {
+      es: 'Generar Pedido',
+      pt: 'Fazer Pedido'
+    },
+    'Detalles del Despacho': {
+      es: 'Detalles del Despacho',
+      pt: 'Detalhes do Pedido'
+    },
+    'Nombre Completo': {
+      es: 'Nombre Completo',
+      pt: 'Nome Completo'
+    },
+    'Tu Nombre (Opcional)': {
+      es: 'Tu Nombre (Opcional)',
+      pt: 'Seu Nome (Opcional)'
+    },
+    'Tu Nombre *': {
+      es: 'Tu Nombre *',
+      pt: 'Seu Nome *'
+    },
+    'Ej: Tomás Carretero': {
+      es: 'Ej: Tomás Carretero',
+      pt: 'Ex: Tomás Carretero'
+    },
+    'Ej: Tomás Carretero (Opcional)': {
+      es: 'Ej: Tomás Carretero (Opcional)',
+      pt: 'Ex: Tomás Carretero (Opcional)'
+    },
+    '¿Cómo querés recibir tu pedido?': {
+      es: '¿Cómo querés recibir tu pedido?',
+      pt: 'Como deseja receber seu pedido?'
+    },
+    '¿Cómo vas a consumir hoy? *': {
+      es: '¿Cómo vas a consumir hoy? *',
+      pt: 'Como deseja consumir hoje? *'
+    },
+    '🍽️ En Mesa': {
+      es: '🍽️ En Mesa',
+      pt: '🍽️ Na Mesa'
+    },
+    '🛍️ Retirar': {
+      es: '🛍️ Retirar',
+      pt: '🛍️ Retirar'
+    },
+    '🛵 Delivery': {
+      es: '🛵 Delivery',
+      pt: '🛵 Delivery'
+    },
+    'Pedir con QR': {
+      es: 'Pedir con QR',
+      pt: 'Pedir com QR'
+    },
+    'Llevar a casa': {
+      es: 'Llevar a casa',
+      pt: 'Levar para casa'
+    },
+    'Envío rápido': {
+      es: 'Envío rápido',
+      pt: 'Entrega rápida'
+    },
+    'Para comer acá': {
+      es: 'Para comer acá',
+      pt: 'Comer no local'
+    },
+    'Para llevar': {
+      es: 'Para llevar',
+      pt: 'Para viagem'
+    },
+    'Delivery (Envío)': {
+      es: 'Delivery (Envío)',
+      pt: 'Delivery (Entrega)'
+    },
+    'Número de Mesa': {
+      es: 'Número de Mesa',
+      pt: 'Número da Mesa'
+    },
+    'Número de Mesa *': {
+      es: 'Número de Mesa *',
+      pt: 'Número da Mesa *'
+    },
+    'Mesa': {
+      es: 'Mesa',
+      pt: 'Mesa'
+    },
+    'Dirección de Entrega': {
+      es: 'Dirección de Entrega',
+      pt: 'Endereço de Entrega'
+    },
+    'Dirección de Entrega *': {
+      es: 'Dirección de Entrega *',
+      pt: 'Endereço de Entrega *'
+    },
+    'Ej: Av. Pellegrini 1420, Piso 3A': {
+      es: 'Ej: Av. Pellegrini 1420, Piso 3A',
+      pt: 'Ex: Av. Pellegrini 1420, Piso 3A'
+    },
+    'Celular / Whatsapp de Contacto': {
+      es: 'Celular / Whatsapp de Contacto',
+      pt: 'Celular / Whatsapp de Contato'
+    },
+    'Tu celular de Contacto (Opcional)': {
+      es: 'Tu celular de Contacto (Opcional)',
+      pt: 'Seu celular de Contato (Opcional)'
+    },
+    'Ej: 3415559876': {
+      es: 'Ej: 3415559876',
+      pt: 'Ex: 3415559876'
+    },
+    '¿Cómo vas a abonar?': {
+      es: '¿Cómo vas a abonar?',
+      pt: 'Como vai pagar?'
+    },
+    'Método de Pago Preferido *': {
+      es: 'Método de Pago Preferido *',
+      pt: 'Forma de Pagamento Preferida *'
+    },
+    'Efectivo': {
+      es: 'Efectivo',
+      pt: 'Dinheiro'
+    },
+    'Mercado Pago': {
+      es: 'Mercado Pago',
+      pt: 'Mercado Pago'
+    },
+    'Tarjeta': {
+      es: 'Tarjeta',
+      pt: 'Cartão'
+    },
+    'Tarjeta de Crédito / Débito': {
+      es: 'Tarjeta de Crédito / Débito',
+      pt: 'Cartão de Crédito / Débito'
+    },
+    '¡Comés primero, pagás al final!': {
+      es: '¡Comés primero, pagás al final!',
+      pt: 'Coma primeiro, pague depois!'
+    },
+    'Pedí lo que quieras. Podés solicitar la cuenta directamente al mozo cuando termines de comer.': {
+      es: 'Pedí lo que quieras. Podés solicitar la cuenta directamente al mozo cuando termines de comer.',
+      pt: 'Peça o que quiser. Você pode solicitar a conta diretamente ao garçom quando terminar de comer.'
+    },
+    'Notas Especiales para el Cocinero': {
+      es: 'Notas Especiales para el Cocinero',
+      pt: 'Observações para o Chef'
+    },
+    'Aclaraciones / Adicionales': {
+      es: 'Aclaraciones / Adicionales',
+      pt: 'Observações Especiais / Extras'
+    },
+    'Ej: Sin cebolla en la de Doble Cheddar, por favor...': {
+      es: 'Ej: Sin cebolla en la de Doble Cheddar, por favor...',
+      pt: 'Ex: Sem cebola no duplo cheddar, por favor...'
+    },
+    'Resumen de Cuenta': {
+      es: 'Resumen de Cuenta',
+      pt: 'Resumo do Pedido'
+    },
+    'Subtotal de Compra:': {
+      es: 'Subtotal de Compra:',
+      pt: 'Subtotal do Pedido:'
+    },
+    'Costo de Envío:': {
+      es: 'Costo de Envío:',
+      pt: 'Taxa de Entrega:'
+    },
+    'Total a Pagar:': {
+      es: 'Total a Pagar:',
+      pt: 'Total a Pagar:'
+    },
+    'El envío se coordina por WhatsApp': {
+      es: 'El envío se coordina por WhatsApp',
+      pt: 'A entrega é coordenada por WhatsApp'
+    },
+    'El total ya incluye el costo de envío tarifado para entregas a domicilio.': {
+      es: 'El total ya incluye el costo de envío tarifado para entregas a domicilio.',
+      pt: 'O total já inclui a taxa de entrega para envios em domicílio.'
+    },
+    'Enviar Pedido a WhatsApp': {
+      es: 'Enviar Pedido a WhatsApp',
+      pt: 'Enviar Pedido para WhatsApp'
+    },
+    'Añadir a la Canasta': {
+      es: 'Añadir a la Canasta',
+      pt: 'Adicionar à Sacola'
+    },
+    'Personalizar': {
+      es: 'Personalizar',
+      pt: 'Personalizar'
+    },
+    'Cancelar': {
+      es: 'Cancelar',
+      pt: 'Cancelar'
+    },
+    'Aderezos:': {
+      es: 'Aderezos:',
+      pt: 'Molhos:'
+    },
+    'Guarnición:': {
+      es: 'Guarnición:',
+      pt: 'Acompanhamento:'
+    },
+    'Mayonesa': {
+      es: 'Mayonesa',
+      pt: 'Maionese'
+    },
+    'Ketchup': {
+      es: 'Ketchup',
+      pt: 'Ketchup'
+    },
+    'Mostaza': {
+      es: 'Mostaza',
+      pt: 'Mostarda'
+    },
+    'Selecciona qué aderezos te gustaría sumarle a tu pedido:': {
+      es: 'Selecciona qué aderezos te gustaría sumarle a tu pedido:',
+      pt: 'Selecione os molhos que deseja adicionar ao seu pedido:'
+    },
+    'Elegí los aderezos que querés sumar gratis:': {
+      es: 'Elegí los aderezos que querés sumar gratis:',
+      pt: 'Escolha os molhos que deseja adicionar grátis:'
+    },
+    'Este plato incluye una guarnición gratis': {
+      es: 'Este plato incluye una guarnición gratis',
+      pt: 'Este prato inclui um acompanhamento grátis'
+    },
+    'Podés sumar guarniciones adicionales con costo:': {
+      es: 'Podés sumar guarniciones adicionales con costo:',
+      pt: 'Você pode adicionar acompanhamentos extras:'
+    },
+    'Elegí **1 o más guarniciones** para tu plato. La primera guarnición ya está **incluida gratis** en el valor del plato. Las adicionales se suman al precio base.': {
+      es: 'Elegí **1 o más guarniciones** para tu plato. La primera guarnición ya está **incluida gratis** en el valor del plato. Las adicionales se suman al precio base.',
+      pt: 'Escolha **1 ou mais acompanhamentos** para o seu prato. O primeiro acompanhamento já está **incluído grátis** no valor do prato. Os adicionais serão somados ao preço base.'
+    },
+    '🔥 Incluida (Gratis)': {
+      es: '🔥 Incluida (Gratis)',
+      pt: '🔥 Incluída (Grátis)'
+    },
+    'Socio Activo': {
+      es: 'Socio Activo',
+      pt: 'Membro Ativo'
+    },
+    'Cerrar Sesión': {
+      es: 'Cerrar Sesión',
+      pt: 'Sair'
+    },
+    '¡Registrate con nosotros!': {
+      es: '¡Registrate con nosotros!',
+      pt: 'Cadastre-se conosco!'
+    },
+    'Registrate en Firebase Auth para guardar tu dirección, sumar cupones y pedir más rápido.': {
+      es: 'Registrate en Firebase Auth para guardar tu dirección, sumar cupones y pedir más rápido.',
+      pt: 'Cadastre-se para salvar seu endereço, acumular cupons e pedir mais rápido.'
+    },
+    'Iniciar Sesión / Registrarse': {
+      es: 'Iniciar Sesión / Registrarse',
+      pt: 'Iniciar Sessão / Registrar-se'
+    },
+    'Volver al Menú Principal': {
+      es: 'Volver al Menú Principal',
+      pt: 'Voltar ao Menu Principal'
+    },
+    '¡Pedido Enviado!': {
+      es: '¡Pedido Enviado!',
+      pt: 'Pedido Enviado!'
+    },
+    'Tu orden ha sido registrada en la cocina de ': {
+      es: 'Tu orden ha sido registrada en la cocina de ',
+      pt: 'Seu pedido foi registrado na cozinha de '
+    },
+    ' y se abrió WhatsApp para su formalización.': {
+      es: ' y se abrió WhatsApp para su formalización.',
+      pt: ' e o WhatsApp foi aberto para formalização.'
+    },
+    'ID de Pedido': {
+      es: 'ID de Pedido',
+      pt: 'ID do Pedido'
+    },
+    'Modalidad': {
+      es: 'Modalidad',
+      pt: 'Modalidade'
+    },
+    '🛵 Envío': {
+      es: '🛵 Envío',
+      pt: '🛵 Entrega'
+    },
+    '🍽️ Mesa': {
+      es: '🍽️ Mesa',
+      pt: '🍽️ Mesa'
+    },
+    '🛍️ Retiro': {
+      es: '🛍️ Retiro',
+      pt: '🛍️ Retirada'
+    },
+    'Detalle de Productos': {
+      es: 'Detalle de Productos',
+      pt: 'Detalhes do Produto'
+    },
+    'Total:': {
+      es: 'Total:',
+      pt: 'Total:'
+    },
+    'Comé tranquilo. Podés pedirle la cuenta directamente al mozo cuando finalices de consumir en la mesa.': {
+      es: 'Comé tranquilo. Podés pedirle la cuenta directamente al mozo cuando finalices de consumir en la mesa.',
+      pt: 'Coma tranquilo. Você pode pedir a conta diretamente ao garçom quando terminar de consumir na mesa.'
+    },
+    'Método de Pago Seleccionado:': {
+      es: 'Método de Pago Seleccionado:',
+      pt: 'Forma de Pagamento Selecionada:'
+    },
+    '. Coordiná el pago final en el chat de WhatsApp que se ha abierto.': {
+      es: '. Coordiná el pago final en el chat de WhatsApp que se ha abierto.',
+      pt: '. Combine o pagamento final no chat do WhatsApp que foi aberto.'
+    },
+    '¿No se abrió WhatsApp?': {
+      es: '¿No se abrió WhatsApp?',
+      pt: 'Não abriu o WhatsApp?'
+    },
+    'Reabrir Chat de WhatsApp': {
+      es: 'Reabrir Chat de WhatsApp',
+      pt: 'Reabrir Chat do WhatsApp'
+    },
+    'Todos': {
+      es: 'Todos',
+      pt: 'Todos'
+    },
+    'Entradas': {
+      es: 'Entradas',
+      pt: 'Entradas'
+    },
+    'Minutas': {
+      es: 'Minutas',
+      pt: 'Pratos Rápidos'
+    },
+    'Hamburguesas': {
+      es: 'Hamburguesas',
+      pt: 'Hambúrgueres'
+    },
+    'Platos': {
+      es: 'Platos',
+      pt: 'Pratos Principais'
+    },
+    'Guarniciones': {
+      es: 'Guarniciones',
+      pt: 'Acompanhamentos'
+    },
+    'Acompañamientos': {
+      es: 'Acompañamientos',
+      pt: 'Acompanhamentos'
+    },
+    'Bebidas': {
+      es: 'Bebidas',
+      pt: 'Bebidas'
+    },
+    'Cerrar': {
+      es: 'Cerrar',
+      pt: 'Fechar'
+    }
+  };
+
+  const productTranslations: {[key: string]: {name: string, description: string}} = {
+    'prod-1': {
+      name: 'Hambúrguer Cheddar Duplo',
+      description: 'Dois hambúrgueres de 120g, queijo cheddar duplo, bacon crocante e molho especial da casa.'
+    },
+    'prod-2': {
+      name: 'Hambúrguer Clássico',
+      description: 'Hambúrguer simples de 120g, alface, tomate, queijo cheddar e maionese caseira.'
+    },
+    'prod-3': {
+      name: 'Oklahoma Fried Onion',
+      description: 'Smashed burger com cebola frita ultrafina, queijo cheddar extra e molho da casa.'
+    },
+    'prod-m1': {
+      name: 'Hambúrguer Completo',
+      description: 'Hambúrguer duplo, ovo, presunto, queijo, alface e tomate. Acompanha porção de batatas fritas. Você pode escolher molhos.'
+    },
+    'prod-m2': {
+      name: 'Sanduíche de Milanesa Novilho Completo',
+      description: 'Fina milanesa de carne de novilho, alface, tomate, ovo frito, presunto e queijo. Você pode escolher molhos.'
+    },
+    'prod-min-empanada': {
+      name: 'Empanadas de Carne de Vaca',
+      description: 'Saborosas empanadas tradicionais recheadas com carne de vaca selecionada, cebolinha, ovo cozido e temperos criollos.'
+    },
+    'prod-min-muzzarella': {
+      name: 'Pizza de Muçarela',
+      description: 'Nossa massa tradicional de pizza com molho de tomate caseiro, abundante muçarela derretida, azeitonas e um toque de orégano.'
+    },
+    'prod-min-pizza-completa': {
+      name: 'Pizza Especial da Casa',
+      description: 'Pizza artesanal com molho especial, abundante muçarela derretida, presunto cozido selecionado e pimentão vermelho assado em tiras.'
+    },
+    'prod-e1': {
+      name: 'Berinjelas ao Escabeche',
+      description: 'Deliciosas berinjelas macias marinadas ao escabeche com especiarias selecionadas, alho, óleo e vinagre. Ideal para começar.'
+    },
+    'prod-e2': {
+      name: 'Feijão Branco Temperado',
+      description: 'Feijões brancos selecionados e temperados com cebolinha fresca, salsa, vinagrete clássico e um toque de azeite de oliva.'
+    },
+    'prod-e3': {
+      name: 'Língua ao Molho Vinagrete',
+      description: 'Fatias finas e macias de língua de vitela marinadas em emulsão clássica de óleo, vinagre, alho picado, salsa fresca e ovo cozido ralado.'
+    },
+    'prod-4': {
+      name: 'Batatas com Cheddar & Bacon',
+      description: 'Batatas fritas crocantes, cobertas com queijo cheddar artesanal derretido e bacon picado.'
+    },
+    'prod-5': {
+      name: 'Batatas Fritas Clássicas',
+      description: 'Batatas fritas caseiras cortadas na hora.'
+    },
+    'prod-guar-fideos': {
+      name: 'Porção de Macarrão',
+      description: 'Macarrão de fita clássico servido al dente, ideal com manteiga, azeite de oliva ou molho sugerido.'
+    },
+    'prod-guar-fritas': {
+      name: 'Porção de Fritas',
+      description: 'Batatas fritas clássicas cortadas na hora e douradas com perfeição.'
+    },
+    'prod-guar-pure': {
+      name: 'Porção de Purê de Batatas',
+      description: 'Purê suntuoso de batatas naturais emulsionado com manteiga, leite e um toque de tempero da vovó.'
+    },
+    'prod-guar-tortilla': {
+      name: 'Tortilha de Batatas',
+      description: 'Tradicional tortilha de batatas feita com cebola caramelizada, ovo fresco batido e centro cremoso.'
+    },
+    'prod-guar-ensalada-comp': {
+      name: 'Salada Completa',
+      description: 'Salada fresca de folhas de alface crocante, tomate fresco, cenoura ralada, cebola roxa e ovo cozido.'
+    },
+    'prod-guar-ensalada-mixta': {
+      name: 'Salada Mista',
+      description: 'Clássica salada fresca de alface crocante, cebola fatiada fina e tomate da estação com molho criollo.'
+    },
+    'prod-6': {
+      name: 'Coca-Cola 1 Litro',
+      description: 'Bebida bem gelada, embalagem familiar de vidro retornável ou plástico conforme disponibilidade.'
+    },
+    'prod-7': {
+      name: 'Água Mineral 500ml',
+      description: 'Com ou sem gás, purificada e refrescante.'
+    },
+    'prod-plat-chuleta-novillo': {
+      name: 'Costeleta de Novilho',
+      description: 'Costeleta macia de novilho premium grelhada. Inclui seleção de um ou mais acompanhamentos (o primeiro é cortesia).'
+    }
+  };
+
+  const t = (key: string): string => {
+    if (language === 'pt' && translations[key]) {
+      return translations[key].pt;
+    }
+    if (translations[key]) {
+      return translations[key].es;
+    }
+    return key;
+  };
+
+  // Dynamically translate products list and shadow 'products' prop
+  const products = originalProducts.map((p) => {
+    if (language === 'pt') {
+      const trans = productTranslations[p.id];
+      if (trans) {
+        return {
+          ...p,
+          name: trans.name,
+          description: trans.description,
+          category: translations[p.category]?.pt || p.category
+        };
+      }
+      return {
+        ...p,
+        category: translations[p.category]?.pt || p.category
+      };
+    }
+    return p;
+  });
+
+  // Handle selectedCategory translation transition when language changes
+  useEffect(() => {
+    if (selectedCategory === 'Todos') {
+      return;
+    }
+    const categoryMapping: {[es: string]: string} = {
+      'Entradas': 'Entradas',
+      'Minutas': 'Pratos Rápidos',
+      'Hamburguesas': 'Hambúrgueres',
+      'Platos': 'Pratos Principais',
+      'Guarniciones': 'Acompanhamentos',
+      'Acompañamientos': 'Acompanhamentos',
+      'Bebidas': 'Bebidas'
+    };
+
+    if (language === 'pt') {
+      const ptName = categoryMapping[selectedCategory];
+      if (ptName) {
+        setSelectedCategory(ptName);
+      }
+    } else {
+      const esName = Object.keys(categoryMapping).find(k => categoryMapping[k] === selectedCategory);
+      if (esName) {
+        setSelectedCategory(esName);
+      }
+    }
+  }, [language]);
 
   // Dressing Selection Modal State
   const [dressingProduct, setDressingProduct] = useState<Product | null>(null);
@@ -555,10 +1099,10 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
             </div>
 
             <h2 className="text-xl font-display font-black text-white uppercase tracking-tight">
-              ¡Pedido Enviado!
+              {t('¡Pedido Enviado!')}
             </h2>
             <p className="text-xs text-zinc-400 mt-1.5 font-medium max-w-xs">
-              Tu orden ha sido registrada en la cocina de <span className="text-emerald-400 font-bold">{businessName}</span> y se abrió WhatsApp para su formalización.
+              {t('Tu orden ha sido registrada en la cocina de ')}<span className="text-emerald-400 font-bold">{businessName}</span>{t(' y se abrió WhatsApp para su formalización.')}
             </p>
 
             {/* Receipt Box */}
@@ -567,24 +1111,24 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               {/* Order Metadata */}
               <div className="flex justify-between items-center pb-2.5 border-b border-zinc-800/80">
                 <div>
-                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">ID de Pedido</span>
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">{t('ID de Pedido')}</span>
                   <span className="font-mono text-xs text-white font-extrabold">{submittedOrder.id}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Modalidad</span>
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">{t('Modalidad')}</span>
                   <span className="font-bold text-white text-xs bg-zinc-850 px-2 py-0.5 rounded-full border border-zinc-800">
                     {submittedOrder.orderType === 'delivery' 
-                      ? '🛵 Envío' 
+                      ? t('🛵 Envío') 
                       : submittedOrder.orderType === 'local' 
-                        ? '🍽️ Mesa' 
-                        : '🛍️ Retiro'}
+                        ? t('🍽️ Mesa') 
+                        : t('🛍️ Retiro')}
                   </span>
                 </div>
               </div>
 
               {/* Items List */}
               <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
-                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Detalle de Productos</span>
+                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-1">{t('Detalle de Productos')}</span>
                 {submittedOrder.items.map((it, idx) => (
                   <div key={idx} className="flex justify-between items-start text-xs">
                     <div className="min-w-0 flex-1">
@@ -601,12 +1145,12 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               <div className="pt-2.5 border-t border-zinc-800/80 space-y-1.5">
                 {submittedOrder.deliveryCost ? (
                   <div className="flex justify-between text-zinc-400 font-semibold">
-                    <span>Costo de Envío:</span>
+                    <span>{t('Costo de Envío:')}</span>
                     <span className="font-mono">{formatCurrency(submittedOrder.deliveryCost)}</span>
                   </div>
                 ) : null}
                 <div className="flex justify-between items-center text-sm font-black text-white pt-1">
-                  <span>Total:</span>
+                  <span>{t('Total:')}</span>
                   <span className="font-mono text-emerald-400 text-base">{formatCurrency(submittedOrder.totalPrice)}</span>
                 </div>
               </div>
@@ -616,14 +1160,14 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                 <div className="p-2.5 bg-amber-500/5 border border-amber-500/15 rounded-lg flex items-start gap-2">
                   <span className="text-amber-400 text-sm">🍽️</span>
                   <p className="text-[10px] text-amber-300 font-semibold leading-relaxed">
-                    Comé tranquilo. Podés pedirle la cuenta directamente al mozo cuando finalices de consumir en la mesa.
+                    {t('Comé tranquilo. Podés pedirle la cuenta directamente al mozo cuando finalices de consumir en la mesa.')}
                   </p>
                 </div>
               ) : (
                 <div className="p-2.5 bg-zinc-850/60 border border-zinc-800 rounded-lg flex items-start gap-2">
                   <span className="text-zinc-400 text-sm">💳</span>
                   <p className="text-[10px] text-zinc-400 font-medium leading-relaxed">
-                    Método de Pago Seleccionado: <strong className="text-zinc-200">{submittedOrder.paymentMethod}</strong>. Coordiná el pago final en el chat de WhatsApp que se ha abierto.
+                    {t('Método de Pago Seleccionado:')} <strong className="text-zinc-200">{submittedOrder.paymentMethod === 'Efectivo' && language === 'pt' ? 'Dinheiro' : submittedOrder.paymentMethod === 'Tarjeta' && language === 'pt' ? 'Cartão' : submittedOrder.paymentMethod}</strong>{t('. Coordiná el pago final en el chat de WhatsApp que se ha abierto.')}
                   </p>
                 </div>
               )}
@@ -633,14 +1177,14 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
             {lastWhatsAppLink && (
               <div className="mt-5 flex items-center justify-center gap-1.5 text-[10px] text-zinc-500 font-bold">
                 <MessageSquare className="w-3.5 h-3.5 text-zinc-500" />
-                <span>¿No se abrió WhatsApp?</span>
+                <span>{t('¿No se abrió WhatsApp?')}</span>
                 <button 
                   onClick={() => {
                     window.open(lastWhatsAppLink, '_blank');
                   }}
                   className="text-emerald-400 hover:underline cursor-pointer font-bold bg-transparent border-none p-0"
                 >
-                  Reabrir Chat de WhatsApp
+                  {t('Reabrir Chat de WhatsApp')}
                 </button>
               </div>
             )}
@@ -650,7 +1194,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               onClick={() => setSubmittedOrder(null)}
               className="w-full mt-6 py-3 px-4 bg-red-650 bg-red-600 hover:bg-red-500 active:scale-98 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
             >
-              Volver al Menú Principal
+              {t('Volver al Menú Principal')}
             </button>
           </div>
         </div>
@@ -683,71 +1227,99 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
           </div>
         </div>
 
-        {/* Dynamic User Profile Status Dropdown (ONLY visible/expanded upon click) */}
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="w-9 h-9 rounded-full bg-zinc-850 hover:bg-zinc-800 border-2 border-zinc-800 flex items-center justify-center overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer"
-          >
-            {currentUser ? (
-              currentUser.photoURL ? (
-                <img src={currentUser.photoURL} alt="Avatar de Cliente" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              ) : (
-                <span className="text-xs font-black text-red-500">{currentUser.displayName.charAt(0).toUpperCase()}</span>
-              )
-            ) : (
-              <User className="w-4 h-4 text-zinc-400" />
-            )}
-          </button>
+        <div className="flex items-center gap-3">
+          {/* Language Selector (Español / Portugués) */}
+          <div className="flex items-center bg-[#1E1E1E] p-1 rounded-xl border border-zinc-800 gap-0.5 text-[10px] font-bold shadow-sm">
+            <button
+              onClick={() => setLanguage('es')}
+              className={`px-2 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer ${
+                language === 'es'
+                  ? 'bg-[#C5A059] text-[#121212] font-black'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <span>🇪🇸</span>
+              <span className="hidden xs:inline">ES</span>
+            </button>
+            <button
+              onClick={() => setLanguage('pt')}
+              className={`px-2 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer ${
+                language === 'pt'
+                  ? 'bg-[#C5A059] text-[#121212] font-black'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <span>🇧🇷</span>
+              <span className="hidden xs:inline">PT</span>
+            </button>
+          </div>
 
-          {/* User Drops menu */}
-          {userMenuOpen && (
-            <div className="absolute right-0 mt-2.5 w-64 bg-[#18181c] border border-zinc-850 rounded-xl shadow-2xl p-4 z-50 animate-scale-up text-left">
+          {/* Dynamic User Profile Status Dropdown (ONLY visible/expanded upon click) */}
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="w-9 h-9 rounded-full bg-zinc-850 hover:bg-zinc-800 border-2 border-zinc-800 flex items-center justify-center overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer"
+            >
               {currentUser ? (
-                <div className="space-y-3">
-                  <div className="pb-2 border-b border-zinc-800/60">
-                    <span className="text-[9px] uppercase font-black tracking-wider text-red-500 py-0.5 block">Socio Activo</span>
-                    <h4 className="font-display font-bold text-sm text-white leading-tight mt-1">{currentUser.displayName}</h4>
-                    <p className="text-[10px] font-mono text-zinc-500 truncate mt-0.5">{currentUser.email}</p>
-                  </div>
-                  <div className="bg-zinc-900/60 p-2 rounded-lg border border-zinc-800/40 text-[10px] text-zinc-400 space-y-1">
-                    <p className="flex items-center justify-between font-medium">
-                      <span>Sync Firebase Auth:</span> <span className="text-green-500 font-black">Activa ✅</span>
-                    </p>
-                    <p className="flex items-center justify-between font-medium">
-                      <span>Origen:</span> <span className="text-zinc-300 font-semibold">{currentUser.authProvider === 'google' ? 'Google OAuth' : 'Registro Manual'}</span>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      handleLogout();
-                    }}
-                    className="w-full py-2 bg-red-950/45 border border-red-900/30 text-red-400 hover:bg-red-900 hover:text-white rounded-lg text-xs font-bold font-sans transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5" /> Cerrar Sesión
-                  </button>
-                </div>
+                currentUser.photoURL ? (
+                  <img src={currentUser.photoURL} alt="Avatar de Cliente" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <span className="text-xs font-black text-red-500">{currentUser.displayName.charAt(0).toUpperCase()}</span>
+                )
               ) : (
-                <div className="space-y-3">
-                  <div className="text-center pb-2">
-                    <p className="text-xs text-zinc-400 font-bold">¡Registrate con nosotros!</p>
-                    <p className="text-[10px] text-zinc-500 mt-1">Registrate en Firebase Auth para guardar tu dirección, sumar cupones y pedir más rápido.</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      setAuthTab('login');
-                      setAuthModalOpen(true);
-                    }}
-                    className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-black transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow"
-                  >
-                    <LogIn className="w-3.5 h-3.5" /> Iniciar Sesión / Registrarse
-                  </button>
-                </div>
+                <User className="w-4 h-4 text-zinc-400" />
               )}
-            </div>
-          )}
+            </button>
+
+            {/* User Drops menu */}
+            {userMenuOpen && (
+              <div className="absolute right-0 mt-2.5 w-64 bg-[#18181c] border border-zinc-850 rounded-xl shadow-2xl p-4 z-50 animate-scale-up text-left">
+                {currentUser ? (
+                  <div className="space-y-3">
+                    <div className="pb-2 border-b border-zinc-800/60">
+                      <span className="text-[9px] uppercase font-black tracking-wider text-red-500 py-0.5 block">{t('Socio Activo')}</span>
+                      <h4 className="font-display font-bold text-sm text-white leading-tight mt-1">{currentUser.displayName}</h4>
+                      <p className="text-[10px] font-mono text-zinc-500 truncate mt-0.5">{currentUser.email}</p>
+                    </div>
+                    <div className="bg-zinc-900/60 p-2 rounded-lg border border-zinc-800/40 text-[10px] text-zinc-400 space-y-1">
+                      <p className="flex items-center justify-between font-medium">
+                        <span>Sync Firebase Auth:</span> <span className="text-green-500 font-black">Activa ✅</span>
+                      </p>
+                      <p className="flex items-center justify-between font-medium">
+                        <span>Origen:</span> <span className="text-zinc-300 font-semibold">{currentUser.authProvider === 'google' ? 'Google OAuth' : 'Registro Manual'}</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full py-2 bg-red-950/45 border border-red-900/30 text-red-400 hover:bg-red-900 hover:text-white rounded-lg text-xs font-bold font-sans transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" /> {t('Cerrar Sesión')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="text-center pb-2">
+                      <p className="text-xs text-zinc-400 font-bold">{t('¡Registrate con nosotros!')}</p>
+                      <p className="text-[10px] text-zinc-500 mt-1">{t('Registrate en Firebase Auth para guardar tu dirección, sumar cupones y pedir más rápido.')}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        setAuthTab('login');
+                        setAuthModalOpen(true);
+                      }}
+                      className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-black transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow"
+                    >
+                      <LogIn className="w-3.5 h-3.5" /> {t('Iniciar Sesión / Registrarse')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -758,7 +1330,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
           <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Buscar hamburguesa, papas, bebidas..."
+            placeholder={t("Buscar hamburguesa, papas, bebidas...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#C5A059] text-white placeholder-zinc-500 transition-all focus:border-[#C5A059]"
@@ -801,8 +1373,8 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
         
         {filteredProducts.length === 0 ? (
           <div className="py-20 text-center text-zinc-500 max-w-sm mx-auto">
-            <p className="text-sm font-semibold">No se encontraron delicias con estos filtros.</p>
-            <p className="text-xs mt-1 text-zinc-600">Probá borrando el texto de la barra de búsqueda o eligiendo otra sección del menú.</p>
+            <p className="text-sm font-semibold">{t('No se encontraron delicias con estos filtros.')}</p>
+            <p className="text-xs mt-1 text-zinc-600">{t('Probá borrando el texto de la barra de búsqueda o eligiendo otra sección del menú.')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -888,7 +1460,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                             className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] rounded-xl text-[10px] sm:text-xs font-bold tracking-wide flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer"
                           >
                             <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#121212]" />
-                            <span>Agregar</span>
+                            <span>{t('Agregar')}</span>
                           </button>
                         )}
                       </div>
@@ -926,7 +1498,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
             <div>
               <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
                 <ShoppingBag className="w-3.5 h-3.5 text-[#C5A059]" />
-                Mi Canasta
+                {t('Mi Canasta')}
               </p>
               <p className="text-lg md:text-xl font-display font-black text-[#F5F5F5] mt-0.5">
                 {formatCurrency(cartTotal)}
@@ -937,7 +1509,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               onClick={() => setIsCheckoutOpen(true)}
               className="px-6 py-3 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] rounded-xl text-xs font-extrabold tracking-wide flex items-center gap-2 cursor-pointer shadow-lg shadow-[#C5A059]/25 transition-all hover:shadow-xl hover:shadow-black/35"
             >
-              <span>Generar Pedido</span>
+              <span>{t('Generar Pedido')}</span>
               <ArrowRight className="w-4 h-4 animate-pulse text-[#121212]" />
             </button>
           </div>
@@ -951,13 +1523,13 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
             <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4">
               <h3 className="font-display font-black text-white text-base flex items-center gap-1.5 uppercase tracking-wide">
                 <MessageSquare className="w-5 h-5 text-[#C5A059]" />
-                Detalles del Despacho
+                {t('Detalles del Despacho')}
               </h3>
               <button
                 onClick={() => setIsCheckoutOpen(false)}
                 className="text-zinc-400 hover:text-white text-xs font-bold bg-zinc-850 hover:bg-zinc-800 px-3 py-1.5 rounded-full transition-all cursor-pointer"
               >
-                Cerrar
+                {t('Cerrar')}
               </button>
             </div>
 
@@ -965,12 +1537,12 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               {/* Form: Name */}
               <div>
                 <label className="block text-zinc-400 text-[10px] font-black tracking-wider uppercase mb-1.5">
-                  {orderType === 'local' ? 'Tu Nombre (Opcional)' : 'Tu Nombre *'}
+                  {orderType === 'local' ? t('Tu Nombre (Opcional)') : t('Tu Nombre *')}
                 </label>
                 <input
                   type="text"
                   required={orderType !== 'local'}
-                  placeholder={orderType === 'local' ? "Ej: Tomás Carretero (Opcional)" : "Ej: Tomás Carretero"}
+                  placeholder={orderType === 'local' ? t("Ej: Tomás Carretero (Opcional)") : t("Ej: Tomás Carretero")}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C5A059] placeholder-zinc-500"
@@ -980,13 +1552,13 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               {/* Form: Delivery Mode Selection */}
               <div>
                 <label className="block text-zinc-400 text-[10px] font-black tracking-wider uppercase mb-2">
-                  ¿Cómo vas a consumir hoy? *
+                  {t('¿Cómo vas a consumir hoy? *')}
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { key: 'local', label: '🍽️ En Mesa', desc: 'Pedir con QR' },
-                    { key: 'takeaway', label: '🛍️ Retirar', desc: 'Llevar a casa' },
-                    { key: 'delivery', label: '🛵 Delivery', desc: 'Envío rápido' },
+                    { key: 'local', label: '🍽️ En Mesa', desc: 'Para comer acá' },
+                    { key: 'takeaway', label: '🛍️ Retirar', desc: 'Para llevar' },
+                    { key: 'delivery', label: '🛵 Delivery', desc: 'Delivery (Envío)' },
                   ].map((mode) => (
                     <button
                       key={mode.key}
@@ -998,8 +1570,8 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                           : 'border-zinc-800 text-zinc-500 hover:bg-zinc-850 hover:text-zinc-300'
                       }`}
                     >
-                      <span className="font-extrabold text-[11px]">{mode.label}</span>
-                      <span className="text-[8px] text-zinc-500 font-normal mt-1">{mode.desc}</span>
+                      <span className="font-extrabold text-[11px]">{t(mode.label)}</span>
+                      <span className="text-[8px] text-zinc-500 font-normal mt-1">{t(mode.desc)}</span>
                     </button>
                   ))}
                 </div>
@@ -1009,7 +1581,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               {orderType === 'local' && (
                 <div>
                   <label className="block text-zinc-400 text-[10px] font-black tracking-wider uppercase mb-1.5">
-                    Número de Mesa *
+                    {t('Número de Mesa *')}
                   </label>
                   <select
                     value={tableNumber}
@@ -1029,12 +1601,12 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               {orderType === 'delivery' && (
                 <div>
                   <label className="block text-zinc-400 text-[10px] font-black tracking-wider uppercase mb-1.5">
-                    Dirección de Entrega *
+                    {t('Dirección de Entrega *')}
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Ej: Av. Pellegrini 1420, Piso 3A"
+                    placeholder={t("Ej: Av. Pellegrini 1420, Piso 3A")}
                     value={deliveryAddress}
                     onChange={(e) => setDeliveryAddress(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C5A059] placeholder-zinc-600"
@@ -1045,11 +1617,11 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               {/* Contact phone */}
               <div>
                 <label className="block text-zinc-400 text-[10px] font-black tracking-wider uppercase mb-1.5">
-                  Tu celular de Contacto (Opcional)
+                  {t('Celular / Whatsapp de Contacto')}
                 </label>
                 <input
                   type="text"
-                  placeholder="Ej: 3415559876"
+                  placeholder={t("Ej: 3415559876")}
                   value={customerContact}
                   onChange={(e) => setCustomerContact(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C5A059] placeholder-zinc-600"
@@ -1064,17 +1636,17 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                   </div>
                   <div>
                     <p className="text-[11px] font-black text-zinc-200">
-                      ¡Comés primero, pagás al final!
+                      {t('¡Comés primero, pagás al final!')}
                     </p>
                     <p className="text-[10px] text-zinc-500 font-bold leading-relaxed">
-                      Pedí lo que quieras. Podés solicitar la cuenta directamente al mozo cuando termines de comer.
+                      {t('Pedí lo que quieras. Podés solicitar la cuenta directamente al mozo cuando termines de comer.')}
                     </p>
                   </div>
                 </div>
               ) : (
                 <div>
                   <label className="block text-zinc-400 text-[10px] font-black tracking-wider uppercase mb-1.5">
-                    Método de Pago Preferido *
+                    {t('Método de Pago Preferido *')}
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     {['Mercado Pago', 'Efectivo', 'Tarjeta'].map((method) => (
@@ -1088,7 +1660,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                         }`}
                       >
-                        {method === 'Mercado Pago' ? '📱 MP' : method === 'Efectivo' ? '💵 Efectivo' : '💳 Tarjeta'}
+                        {method === 'Mercado Pago' ? '📱 MP' : method === 'Efectivo' ? (language === 'pt' ? '💵 Dinheiro' : '💵 Efectivo') : (language === 'pt' ? '💳 Cartão' : '💳 Tarjeta')}
                       </button>
                     ))}
                   </div>
@@ -1098,11 +1670,11 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               {/* Extra instructions */}
               <div>
                 <label className="block text-zinc-400 text-[10px] font-black tracking-wider uppercase mb-1.5">
-                  Aclaraciones / Adicionales
+                  {t('Aclaraciones / Adicionales')}
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Ej: Sin cebolla en la de Doble Cheddar, por favor..."
+                  placeholder={t("Ej: Sin cebolla en la de Doble Cheddar, por favor...")}
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none resize-none focus:ring-1 focus:ring-[#C5A059] placeholder-zinc-500"
@@ -1112,7 +1684,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               {/* Account summary details with full interactive list of chosen items */}
               <div className="bg-[#1E1E1E] p-3.5 rounded-xl border border-[#2A2A2A] space-y-2">
                 <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest border-b border-zinc-800 pb-1">
-                  Resumen de Cuenta
+                  {t('Resumen de Cuenta')}
                 </p>
                 <div className="max-h-28 overflow-y-auto divide-y divide-zinc-800/40 pr-1 space-y-2">
                   {cart.map((it, idx) => {
@@ -1125,12 +1697,12 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                           </p>
                           {it.selectedDressings && it.selectedDressings.length > 0 && (
                             <p className="text-[10px] text-[#C5A059] font-medium pl-1 mt-0.5">
-                              Aderezos: {it.selectedDressings.join(', ')}
+                              {t('Aderezos:')} {it.selectedDressings.map(d => t(d)).join(', ')}
                             </p>
                           )}
                           {it.selectedSideDishes && it.selectedSideDishes.length > 0 && (
                             <p className="text-[10px] text-[#C5A059] font-semibold pl-1 mt-0.5">
-                              Guarnición: {it.selectedSideDishes.map(d => d.name).join(', ')}
+                              {t('Guarnición:')} {it.selectedSideDishes.map(d => d.name).join(', ')}
                             </p>
                           )}
                         </div>
@@ -1143,22 +1715,22 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                 </div>
                 <div className="space-y-1 pt-2 border-t border-zinc-800/60 font-sans text-xs">
                   <div className="flex justify-between font-medium">
-                    <span className="text-zinc-400">Subtotal de Compra:</span>
+                    <span className="text-zinc-400">{t('Subtotal de Compra:')}</span>
                     <span className="text-zinc-200 font-mono">{formatCurrency(cartTotal)}</span>
                   </div>
                   {orderType === 'delivery' && (
                     <div className="flex justify-between font-medium text-[#C5A059]">
-                      <span>Costo de Envío:</span>
+                      <span>{t('Costo de Envío:')}</span>
                       <span className="font-mono">{formatCurrency(1200)}</span>
                     </div>
                   )}
                   <div className="flex justify-between font-bold text-sm pt-2.5 border-t border-zinc-850">
-                    <span className="text-zinc-200">Total a Pagar:</span>
+                    <span className="text-zinc-200">{t('Total a Pagar:')}</span>
                     <span className="text-[#C5A059] font-bold">{formatCurrency(cartTotal + (orderType === 'delivery' ? 1200 : 0))}</span>
                   </div>
                 </div>
                 {orderType === 'delivery' && (
-                  <p className="text-[9px] text-zinc-500 italic mt-1 leading-relaxed">El total ya incluye el costo de envío tarifado para entregas a domicilio.</p>
+                  <p className="text-[9px] text-zinc-500 italic mt-1 leading-relaxed">{t('El total ya incluye el costo de envío tarifado para entregas a domicilio.')}</p>
                 )}
               </div>
 
@@ -1167,7 +1739,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                 type="submit"
                 className="w-full py-3 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] rounded-xl text-xs font-bold tracking-wide flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all active:scale-95"
               >
-                <span>Enviar Pedido a WhatsApp</span>
+                <span>{t('Enviar Pedido a WhatsApp')}</span>
                 <MessageSquare className="w-4 h-4 text-[#121212]" />
               </button>
             </form>
@@ -1320,18 +1892,18 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
             <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4 font-sans">
               <h3 className="font-display font-black text-white text-sm flex items-center gap-1.5 uppercase">
                 <Sparkles className="w-4 h-4 text-[#C5A059] animate-pulse" />
-                Personalizar {dressingProduct.name}
+                {t('Personalizar')} {dressingProduct.name}
               </h3>
               <button
                 onClick={() => setDressingProduct(null)}
                 className="text-zinc-400 hover:text-white font-bold text-xs bg-zinc-850 px-3 py-1 rounded-full cursor-pointer"
               >
-                Cancelar
+                {t('Cancelar')}
               </button>
             </div>
 
             <p className="text-[11px] text-zinc-400 font-medium mb-4 leading-relaxed font-sans">
-              Selecciona qué aderezos te gustaría sumarle a tu pedido:
+              {t('Selecciona qué aderezos te gustaría sumarle a tu pedido:')}
             </p>
 
             <div className="space-y-2.5 mb-5 font-sans">
@@ -1352,7 +1924,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                     }`}>
                       {dressingOptions[optionName] && <Check className="w-3 h-3 stroke-[3] text-[#121212]" />}
                     </div>
-                    <span className="text-[12px] font-extrabold">{optionName}</span>
+                    <span className="text-[12px] font-extrabold">{t(optionName)}</span>
                   </div>
                   <input
                     type="checkbox"
@@ -1371,7 +1943,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               onClick={confirmAddWithDressings}
               className="w-full py-3 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] font-black text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-all active:scale-95"
             >
-              <span>Añadir a la Canasta</span>
+              <span>{t('Añadir a la Canasta')}</span>
               <Plus className="w-4 h-4 text-[#121212]" />
             </button>
           </div>
@@ -1385,33 +1957,33 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
             <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4 font-sans">
               <h3 className="font-display font-black text-white text-sm flex items-center gap-1.5 uppercase">
                 <Sparkles className="w-4 h-4 text-[#C5A059] animate-pulse" />
-                Personalizar {sideDishProduct.name}
+                {t('Personalizar')} {sideDishProduct.name}
               </h3>
               <button
                 onClick={() => setSideDishProduct(null)}
                 className="text-zinc-400 hover:text-white font-bold text-xs bg-zinc-850 px-3 py-1 rounded-full cursor-pointer"
               >
-                Cancelar
+                {t('Cancelar')}
               </button>
             </div>
 
             <p className="text-[11px] text-zinc-400 font-medium mb-4 leading-relaxed font-sans">
-              Elegí **1 o más guarniciones** para tu plato. La primera guarnición ya está **incluida gratis** en el valor del plato. Las adicionales se suman al precio base.
+              {t('Elegí **1 o más guarniciones** para tu plato. La primera guarnición ya está **incluida gratis** en el valor del plato. Las adicionales se suman al precio base.')}
             </p>
 
             <div className="max-h-60 overflow-y-auto space-y-2.5 mb-5 pr-1 select-none font-sans">
-              {products.filter(g => g.category === 'Guarniciones').map((guarnicion) => {
+              {products.filter(g => g.category === t('Guarniciones')).map((guarnicion) => {
                 const isSelected = !!selectedSideDishesMap[guarnicion.id];
                 
                 // Determine price label dynamically
-                const selectedGuarniciones = products.filter(g => g.category === 'Guarniciones' && selectedSideDishesMap[g.id]);
+                const selectedGuarniciones = products.filter(g => g.category === t('Guarniciones') && selectedSideDishesMap[g.id]);
                 const sortedSelected = [...selectedGuarniciones].sort((a, b) => b.price - a.price);
                 const freeGuarnicionId = sortedSelected.length > 0 ? sortedSelected[0].id : null;
                 
                 let priceLabel = '';
                 if (isSelected) {
                   if (guarnicion.id === freeGuarnicionId) {
-                    priceLabel = '🔥 Incluida (Gratis)';
+                    priceLabel = t('🔥 Incluida (Gratis)');
                   } else {
                     priceLabel = `+ ${formatCurrency(guarnicion.price)}`;
                   }
@@ -1475,10 +2047,10 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
 
             {/* Price Preview */}
             <div className="mb-4 bg-zinc-900/60 border border-zinc-850/60 p-3 rounded-xl flex justify-between items-center text-xs">
-              <span className="text-zinc-400 font-bold font-sans">Precio Total del Plato:</span>
+              <span className="text-zinc-400 font-bold font-sans">{t('Precio Total del Plato:')}</span>
               <span className="text-white font-mono font-black text-sm">
                 {(() => {
-                  const selectedGuarniciones = products.filter(g => g.category === 'Guarniciones' && selectedSideDishesMap[g.id]);
+                  const selectedGuarniciones = products.filter(g => g.category === t('Guarniciones') && selectedSideDishesMap[g.id]);
                   const sortedSelected = [...selectedGuarniciones].sort((a, b) => b.price - a.price);
                   const additionalCost = sortedSelected.slice(1).reduce((sum, g) => sum + g.price, 0);
                   return formatCurrency(sideDishProduct.price + additionalCost);
@@ -1490,7 +2062,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               onClick={confirmAddWithSideDishes}
               className="w-full py-3 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] font-black text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-all active:scale-95"
             >
-              <span>Añadir a la Canasta</span>
+              <span>{t('Añadir a la Canasta')}</span>
               <Plus className="w-4 h-4 text-[#121212]" />
             </button>
           </div>
