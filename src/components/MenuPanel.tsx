@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Product, CartItem, Order } from '../types';
 import { ShoppingCart, Plus, Minus, Trash2, Send, CheckCircle, Smartphone } from 'lucide-react';
+import { useToast } from './ToastContext';
 
 interface MenuPanelProps {
   products: Product[];
@@ -9,6 +10,7 @@ interface MenuPanelProps {
 }
 
 export default function MenuPanel({ products, setOrders, onOrderSuccess }: MenuPanelProps) {
+  const toast = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
@@ -95,11 +97,11 @@ export default function MenuPanel({ products, setOrders, onOrderSuccess }: MenuP
   const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (orderType !== 'local' && !customerName.trim()) {
-      alert('Por favor, ingresá el nombre del cliente para la orden.');
+      toast.warning('Por favor, ingresá el nombre del cliente para la orden.');
       return;
     }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
-      alert('Para envíos a domicilio registrados en caja, se requiere la dirección.');
+      toast.warning('Para envíos a domicilio registrados en caja, se requiere la dirección.');
       return;
     }
 
@@ -138,7 +140,7 @@ export default function MenuPanel({ products, setOrders, onOrderSuccess }: MenuP
     clearCart();
     setIsCheckoutOpen(false);
     onOrderSuccess();
-    alert(`¡Pedido ${orderId} registrado con éxito DIRECTO EN CAJA! No requiere enviar mensaje por WhatsApp.`);
+    toast.success(`¡Pedido ${orderId} registrado con éxito DIRECTO EN CAJA!`);
   };
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Order, Product } from '../types';
 import { Check, Clock, Plus, Trash2, TrendingUp, DollarSign, PieChart as PieIcon, ShoppingBag, Send, Award, Flame, Percent, Sparkles, BarChart3, Download, User, MapPin, CreditCard, FileText, X, Copy, ExternalLink, MessageCircle, Share2 } from 'lucide-react';
+import { useToast } from './ToastContext';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -134,6 +135,7 @@ export function OrderTimer({ order }: OrderTimerProps) {
 }
 
 export default function AdminPanel({ orders, products, setOrders, openNewOrderFunc, onlyHistory = false }: AdminPanelProps) {
+  const toast = useToast();
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedOrderIdForDetail, setSelectedOrderIdForDetail] = useState<string | null>(null);
@@ -370,7 +372,7 @@ export default function AdminPanel({ orders, products, setOrders, openNewOrderFu
   // Export orders to standard CSV/Excel format matching the financial database structures
   const exportOrdersToCSV = (ordersToExport: Order[], title = 'historial_pedidos') => {
     if (!ordersToExport || ordersToExport.length === 0) {
-      alert('No hay pedidos en la lista para exportar.');
+      toast.warning('No hay pedidos en la lista para exportar.');
       return;
     }
 
@@ -424,7 +426,7 @@ export default function AdminPanel({ orders, products, setOrders, openNewOrderFu
       document.body.removeChild(link);
     } catch (error) {
       console.error('Error al exportar CSV:', error);
-      alert('Error de exportación: No se pudo generar el archivo de reporte.');
+      toast.error('Error de exportación: No se pudo generar el archivo de reporte.');
     }
   };
 
@@ -1455,16 +1457,15 @@ export default function AdminPanel({ orders, products, setOrders, openNewOrderFu
                           text: ticketText
                         });
                       } catch (err) {
-                        // If users cancel or it fails, fallback to copy to clipboard
                         if (err instanceof Error && err.name !== 'AbortError') {
                           await navigator.clipboard.writeText(ticketText);
-                          alert('📋 ¡Ticket copiado al portapapeles! Ya podés pegarlo y compartirlo con tu cliente.');
+                          toast.success('📋 ¡Ticket copiado al portapapeles! Ya podés pegarlo y compartirlo con tu cliente.');
                         }
                       }
                     } else {
                       try {
                         await navigator.clipboard.writeText(ticketText);
-                        alert('📋 ¡Tu navegador no soporta compartir directamente, pero el ticket fue copiado al portapapeles! Ya podés pegarlo en cualquier aplicación.');
+                        toast.success('📋 ¡Ticket copiado al portapapeles! Podés pegarlo en cualquier aplicación.');
                       } catch (err) {
                         console.error('Copy failed:', err);
                       }

@@ -8,6 +8,7 @@ import ArchitecturePanel from './components/ArchitecturePanel';
 import SettingsPanel from './components/SettingsPanel';
 import CustomerMenu from './components/CustomerMenu';
 import ProductsAdminPanel from './components/ProductsAdminPanel';
+import { useToast } from './components/ToastContext';
 
 import { Product, Ingredient, Order } from './types';
 import { db } from './lib/db';
@@ -15,6 +16,7 @@ import { Smartphone, LayoutDashboard, QrCode, Lock, ShieldCheck, RotateCcw, Prin
 import { generateOrderTicketPDF, generateConsolidatedTicketsPDF } from './utils/pdfGenerator';
 
 export default function App() {
+  const toast = useToast();
   const [viewMode, setViewMode] = useState<'client' | 'admin'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -39,11 +41,6 @@ export default function App() {
     });
   };
   
-  // States of isolation simulation (like Vercel hosting)
-  const [vercelSimulation, setVercelSimulation] = useState<'full' | 'split'>('full'); // 'full' is the real production separation without layout switcher bar
-  const [hasScannedQr, setHasScannedQr] = useState<boolean>(false);
-  const [selectedSimulatedMesa, setSelectedSimulatedMesa] = useState<number>(4);
-
   // Realtime state simulation backed by simulated Firestore
   const [orders, setOrders] = useState<Order[]>(() => db.getOrders());
   const [ingredients, setIngredients] = useState<Ingredient[]>(() => db.getIngredients());
@@ -223,120 +220,27 @@ export default function App() {
   const handleOrderSubmittedByClient = (newOrder: Order) => {
     // Add client order directly into Firestore simulator
     handleSetOrders((prev) => [newOrder, ...prev]);
-    // Switch view back to admin so user immediately sees the order arrived in real time!
-    setVercelSimulation('split');
-    setViewMode('admin');
-    setCurrentTab('dashboard');
-    alert('🎉 ¡Comanda enviada!\nIngresó a la cocina del administrador en tiempo real mediante Sincronización Firebase Live.');
+    // Keep client on the client environment (do not redirect)
+    toast.success('🎉 ¡Pedido recibido con éxito en la cocina!');
   };
 
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-50 text-slate-900 font-sans overflow-hidden antialiased">
       
-      {/* Top Controller Switch Mode Nav Header: Only shown in "split" workspace simulator mode */}
-      {vercelSimulation === 'split' && (
-        <div className="h-14 bg-slate-950 text-white flex items-center justify-between px-6 shrink-0 z-40 shadow-md border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-black tracking-wide text-red-500 uppercase">Simulador Entorno Vercel</span>
-            <span className="px-1.5 py-0.5 bg-slate-850 rounded font-mono text-[8px] text-slate-400">Modo Desarrollo</span>
-          </div>
-
-          {/* View Mode Switcher buttons */}
-          <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800 max-w-sm/2">
-            <button
-              onClick={() => setViewMode('client')}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                viewMode === 'client'
-                  ? 'bg-red-650 bg-red-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Smartphone className="w-3.5 h-3.5" /> 📱 Menú Cliente (QR)
-            </button>
-            <button
-              onClick={() => {
-                setViewMode('admin');
-              }}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                viewMode === 'admin'
-                  ? 'bg-red-650 bg-red-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" /> 📊 Sección Administrador
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setVercelSimulation('full');
-                setViewMode('client');
-                alert('✨ Modo Producción Aislado Activado. Estás visualizando el catálogo exacto que se abre al cliente cuando escanea un QR real. No hay barras administrativas de acceso, ni enlaces de backoffice.');
-              }}
-              className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1 shadow-sm uppercase tracking-wider text-[10px]"
-            >
-              🚀 Simular Cliente Real
-            </button>
-          </div>
-        </div>
-      )}
-
       {viewMode === 'client' ? (
         /* ======================== CLIENT VIEW MOUNT ======================== */
-        vercelSimulation === 'split' ? (
-          /* Split developer view (within phone container mockup) */
-          <div className="flex-1 bg-slate-900 overflow-auto flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl relative overflow-hidden flex flex-col h-[750px] border-4 border-slate-950 animate-fade-in">
-              {/* Real Smartphone Status bar simulation */}
-              <div className="px-5 py-2.5 bg-red-650 bg-red-600 flex justify-between items-center text-white/50 text-[10px] select-none border-b border-white/5">
-                <span>📶 4G En Vercel</span>
-                <span>{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} p.m.</span>
-                <span>🔋 100%</span>
-              </div>
-              
-              {/* Live QR Scan Source Banner info */}
-              <div className="bg-amber-50 text-amber-900 px-4 py-2 text-[10px] font-bold flex justify-between items-center border-b border-amber-100 shrink-0">
-                <span className="flex items-center gap-1">
-                  <QrCode className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                  Mesa simulada: Mesa 4
-                </span>
-                <button
-                  onClick={() => {
-                    setVercelSimulation('full');
-                    alert('✨ Menú cargado en Responsiva de pantalla completa. Así se visualiza en los navegadores de celulares reales.');
-                  }}
-                  className="bg-amber-100 hover:bg-amber-200 text-amber-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded cursor-pointer transition-all"
-                >
-                  PANTALLA COMPLETA ↗️
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-auto bg-slate-50">
-                <CustomerMenu
-                  products={products}
-                  onOrderSubmitted={handleOrderSubmittedByClient}
-                  whatsappPhone={config.whatsappPhone}
-                  businessName={config.businessName}
-                  onGoToAdmin={() => setViewMode('admin')}
-                />
-              </div>
-            </div>
+        /* 100% DECOUPLED CLIENT VIEW - NO ADMIN OVERLAYS, BARS OR SWITCHERS */
+        <div className="flex-1 overflow-auto bg-[#0a0a0c] flex justify-center animate-fade-in">
+          <div className="w-full max-w-7xl bg-[#121212] min-h-screen shadow-2xl flex flex-col relative">
+            <CustomerMenu
+              products={products}
+              onOrderSubmitted={handleOrderSubmittedByClient}
+              whatsappPhone={config.whatsappPhone}
+              businessName={config.businessName}
+              onGoToAdmin={() => setViewMode('admin')}
+            />
           </div>
-        ) : (
-          /* 100% DECOUPLED CLIENT VIEW - NO ADMIN OVERLAYS, BARS OR SWITCHERS */
-          <div className="flex-1 overflow-auto bg-[#0a0a0c] flex justify-center animate-fade-in">
-            <div className="w-full max-w-7xl bg-[#121212] min-h-screen shadow-2xl flex flex-col relative">
-              <CustomerMenu
-                products={products}
-                onOrderSubmitted={handleOrderSubmittedByClient}
-                whatsappPhone={config.whatsappPhone}
-                businessName={config.businessName}
-                onGoToAdmin={() => setViewMode('admin')}
-              />
-            </div>
-          </div>
-        )
+        </div>
       ) : !isAdminUnlocked ? (
         /* ======================== SECURE LOCK SCREEN VIEW ======================== */
         <div className="flex-1 bg-slate-900 overflow-auto flex items-center justify-center p-6">
@@ -474,7 +378,7 @@ export default function App() {
                 onClick={() => {
                   setIsAdminUnlocked(false);
                   setViewMode('client');
-                  alert('🔒 Sección de administración bloqueada con éxito.');
+                  toast.success('🔒 Sección de administración bloqueada con éxito.');
                 }}
                 className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-355 dark:text-slate-300 hover:text-red-500 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1"
                 title="Cerrar panel de administración y bloquear acceso"
@@ -653,7 +557,7 @@ export default function App() {
                   onClick={() => {
                     const activeOrders = orders.filter((o) => o.status === 'pending' || o.status === 'cooking');
                     if (activeOrders.length === 0) {
-                      alert('No hay comandas activas ("Pendiente" o "En Cocina") en este momento.');
+                      toast.warning('No hay comandas activas ("Pendiente" o "En Cocina") en este momento.');
                       return;
                     }
                     generateConsolidatedTicketsPDF(activeOrders, 'PENDIENTES Y EN COCINA');

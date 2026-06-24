@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Smartphone, Check, HelpCircle, Save, QrCode, Clipboard, Globe } from 'lucide-react';
+import { useToast } from './ToastContext';
 
 interface SettingsPanelProps {
   config: {
@@ -19,6 +20,7 @@ interface SettingsPanelProps {
 }
 
 export default function SettingsPanel({ config, setConfig }: SettingsPanelProps) {
+  const toast = useToast();
   const [whatsappPhone, setWhatsappPhone] = useState(config.whatsappPhone);
   const [businessName, setBusinessName] = useState(config.businessName);
   const [qrUrl, setQrUrl] = useState(config.qrUrl);
@@ -36,7 +38,7 @@ export default function SettingsPanel({ config, setConfig }: SettingsPanelProps)
       tablesCount,
       adminPin,
     });
-    alert('¡Configuración modificada correctamente! Los datos ya impactan en tiempo real en los accesos QR correspondientes.');
+    toast.success('¡Configuración modificada correctamente! Los datos ya impactan en tiempo real en los accesos QR correspondientes.');
   };
 
   const getFullQRUrl = () => {

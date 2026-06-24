@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Ingredient } from '../types';
 import { Settings, ShieldAlert, BadgePlus, RefreshCcw, Landmark, DollarSign, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { useToast } from './ToastContext';
 
 interface InventoryPanelProps {
   ingredients: Ingredient[];
@@ -8,6 +9,7 @@ interface InventoryPanelProps {
 }
 
 export default function InventoryPanel({ ingredients, setIngredients }: InventoryPanelProps) {
+  const toast = useToast();
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
   const [restockAmount, setRestockAmount] = useState<number>(50);
 
@@ -43,7 +45,7 @@ export default function InventoryPanel({ ingredients, setIngredients }: Inventor
   const handleDeleteIngredient = (id: string, name: string) => {
     if (confirm(`¿Estás seguro de que deseas eliminar el insumo "${name}"?\nEsta acción es irreversible.`)) {
       setIngredients((prev) => prev.filter((ing) => ing.id !== id));
-      alert(`🗑️ Insumo "${name}" eliminado.`);
+      toast.success(`🗑️ Insumo "${name}" eliminado.`);
     }
   };
 
@@ -67,14 +69,14 @@ export default function InventoryPanel({ ingredients, setIngredients }: Inventor
           ing.id === editingIngredient.id ? { ...ing, ...ingredientData } : ing
         )
       );
-      alert(`📋 Insumo "${ingredientData.name}" editado con éxito.`);
+      toast.success(`📋 Insumo "${ingredientData.name}" editado con éxito.`);
     } else {
       const newIng: Ingredient = {
         id: `ing_${Date.now()}`,
         ...ingredientData,
       };
       setIngredients((prev) => [...prev, newIng]);
-      alert(`🎉 Insumo "${ingredientData.name}" creado con éxito.`);
+      toast.success(`🎉 Insumo "${ingredientData.name}" creado con éxito.`);
     }
 
     resetForm();
@@ -119,7 +121,7 @@ export default function InventoryPanel({ ingredients, setIngredients }: Inventor
       })
     );
     
-    alert(`Se agregaron ${restockAmount} ${selectedIngredient.unit} de stock a "${selectedIngredient.name}".`);
+    toast.success(`Se agregaron ${restockAmount} ${selectedIngredient.unit} de stock a "${selectedIngredient.name}".`);
     setSelectedIngredient(null);
   };
 

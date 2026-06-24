@@ -22,9 +22,12 @@ import {
   MessageCircle, 
   ArrowRight,
   Flame,
-  Clock 
+  Clock,
+  CheckCircle,
+  HelpCircle
 } from 'lucide-react';
 import { db } from '../lib/db';
+import { useToast } from './ToastContext';
 
 interface CustomerMenuProps {
   products: Product[];
@@ -74,6 +77,9 @@ const getProductImage = (productId: string, productName: string, category: strin
 };
 
 export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone, businessName, onGoToAdmin }: CustomerMenuProps) {
+  const toast = useToast();
+  const [submittedOrder, setSubmittedOrder] = useState<Order | null>(null);
+  const [lastWhatsAppLink, setLastWhatsAppLink] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -183,7 +189,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
   const handleRegisterSubmitted = (e: React.FormEvent) => {
     e.preventDefault();
     if (!authEmail.trim() || !authPassword.trim() || !authName.trim()) {
-      alert('Por favor, completa todos los campos requeridos.');
+      toast.warning('Por favor, completa todos los campos requeridos.');
       return;
     }
 
@@ -203,13 +209,13 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
     setAuthPassword('');
     setAuthName('');
     setAuthPhone('');
-    alert(`¡Registro exitoso en Firebase Auth! Bienvenido ${newUser.displayName}. Tus datos se guardaron para compras más rápidas.`);
+    toast.success(`¡Registro exitoso! Bienvenido ${newUser.displayName}. Tus datos se guardaron para compras más rápidas.`);
   };
 
   const handleLoginSubmitted = (e: React.FormEvent) => {
     e.preventDefault();
     if (!authEmail.trim() || !authPassword.trim()) {
-      alert('Por favor, ingresa tu email y contraseña.');
+      toast.warning('Por favor, ingresa tu email y contraseña.');
       return;
     }
 
@@ -222,7 +228,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
       setAuthModalOpen(false);
       setAuthEmail('');
       setAuthPassword('');
-      alert(`¡Sesión iniciada con éxito! Bienvenido nuevamente, ${found.displayName}.`);
+      toast.success(`¡Sesión iniciada con éxito! Bienvenido nuevamente, ${found.displayName}.`);
     } else {
       // Create user on the fly to keep sim fast and seamless
       const generatedUser: AppUser = {
@@ -236,7 +242,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
       setAuthModalOpen(false);
       setAuthEmail('');
       setAuthPassword('');
-      alert(`¡Iniciaste sesión correctamente! Se ha creado un perfil Firebase con tu correo ${generatedUser.email}.`);
+      toast.success(`¡Iniciaste sesión correctamente! Se ha creado un perfil Firebase con tu correo ${generatedUser.email}.`);
     }
   };
 
@@ -244,7 +250,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
     if (window.confirm('¿Seguro que querés cerrar sesión?')) {
       db.clearCurrentUser();
       setCurrentUser(null);
-      alert('Sesión cerrada correctamente.');
+      toast.success('Sesión cerrada correctamente.');
     }
   };
 
@@ -421,7 +427,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
       }));
       
     if (selectedList.length === 0) {
-      alert('Por favor, seleccioná al menos 1 guarnición para tu plato.');
+      toast.warning('Por favor, seleccioná al menos 1 guarnición para tu plato.');
       return;
     }
     
@@ -432,11 +438,11 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
   const handleSendOrder = (e: React.FormEvent) => {
     e.preventDefault();
     if (orderType !== 'local' && !customerName.trim()) {
-      alert('Por favor ingresá tu nombre para identificar el pedido.');
+      toast.warning('Por favor ingresá tu nombre para identificar el pedido.');
       return;
     }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
-      alert('Por favor especificá la dirección de envío.');
+      toast.warning('Por favor especificá la dirección de envío.');
       return;
     }
 
@@ -529,8 +535,128 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
 
     setCart([]);
     setIsCheckoutOpen(false);
-    alert('¡Pedido enviado al administrador! Se abrirá un chat de WhatsApp para completar el envío de manera formal.');
+    setSubmittedOrder(finalOrder);
+    setLastWhatsAppLink(whatsappLink);
+    toast.success('🎉 ¡Pedido enviado! Se abrió WhatsApp para enviar el mensaje de confirmación.');
   };
+
+  if (submittedOrder) {
+    return (
+      <div className="w-full min-h-screen bg-[#0d0d0f] flex flex-col items-center justify-center p-4 font-sans text-zinc-150 animate-fade-in animate-scale-up">
+        <div className="w-full max-w-md bg-[#121215] border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl relative">
+          
+          {/* Header Accent */}
+          <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500 w-full" />
+          
+          <div className="p-6 flex flex-col items-center text-center">
+            {/* Green Animated Success Check icon */}
+            <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center shadow-lg mb-4 animate-scale-up">
+              <CheckCircle className="w-10 h-10" />
+            </div>
+
+            <h2 className="text-xl font-display font-black text-white uppercase tracking-tight">
+              ¡Pedido Enviado!
+            </h2>
+            <p className="text-xs text-zinc-400 mt-1.5 font-medium max-w-xs">
+              Tu orden ha sido registrada en la cocina de <span className="text-emerald-400 font-bold">{businessName}</span> y se abrió WhatsApp para su formalización.
+            </p>
+
+            {/* Receipt Box */}
+            <div className="w-full bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 mt-6 text-left space-y-4 font-sans text-xs">
+              
+              {/* Order Metadata */}
+              <div className="flex justify-between items-center pb-2.5 border-b border-zinc-800/80">
+                <div>
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">ID de Pedido</span>
+                  <span className="font-mono text-xs text-white font-extrabold">{submittedOrder.id}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Modalidad</span>
+                  <span className="font-bold text-white text-xs bg-zinc-850 px-2 py-0.5 rounded-full border border-zinc-800">
+                    {submittedOrder.orderType === 'delivery' 
+                      ? '🛵 Envío' 
+                      : submittedOrder.orderType === 'local' 
+                        ? '🍽️ Mesa' 
+                        : '🛍️ Retiro'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Detalle de Productos</span>
+                {submittedOrder.items.map((it, idx) => (
+                  <div key={idx} className="flex justify-between items-start text-xs">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-zinc-200 truncate">
+                        <span className="text-emerald-400 font-extrabold font-mono mr-1">{it.quantity}x</span> {it.productName || 'Producto'}
+                      </p>
+                    </div>
+                    <span className="font-mono text-zinc-300 font-bold ml-3">{formatCurrency(it.price * it.quantity)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Delivery cost & Total */}
+              <div className="pt-2.5 border-t border-zinc-800/80 space-y-1.5">
+                {submittedOrder.deliveryCost ? (
+                  <div className="flex justify-between text-zinc-400 font-semibold">
+                    <span>Costo de Envío:</span>
+                    <span className="font-mono">{formatCurrency(submittedOrder.deliveryCost)}</span>
+                  </div>
+                ) : null}
+                <div className="flex justify-between items-center text-sm font-black text-white pt-1">
+                  <span>Total:</span>
+                  <span className="font-mono text-emerald-400 text-base">{formatCurrency(submittedOrder.totalPrice)}</span>
+                </div>
+              </div>
+
+              {/* Payment notification message */}
+              {submittedOrder.orderType === 'local' ? (
+                <div className="p-2.5 bg-amber-500/5 border border-amber-500/15 rounded-lg flex items-start gap-2">
+                  <span className="text-amber-400 text-sm">🍽️</span>
+                  <p className="text-[10px] text-amber-300 font-semibold leading-relaxed">
+                    Comé tranquilo. Podés pedirle la cuenta directamente al mozo cuando finalices de consumir en la mesa.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-2.5 bg-zinc-850/60 border border-zinc-800 rounded-lg flex items-start gap-2">
+                  <span className="text-zinc-400 text-sm">💳</span>
+                  <p className="text-[10px] text-zinc-400 font-medium leading-relaxed">
+                    Método de Pago Seleccionado: <strong className="text-zinc-200">{submittedOrder.paymentMethod}</strong>. Coordiná el pago final en el chat de WhatsApp que se ha abierto.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Help/Instruction */}
+            {lastWhatsAppLink && (
+              <div className="mt-5 flex items-center justify-center gap-1.5 text-[10px] text-zinc-500 font-bold">
+                <MessageSquare className="w-3.5 h-3.5 text-zinc-500" />
+                <span>¿No se abrió WhatsApp?</span>
+                <button 
+                  onClick={() => {
+                    window.open(lastWhatsAppLink, '_blank');
+                  }}
+                  className="text-emerald-400 hover:underline cursor-pointer font-bold bg-transparent border-none p-0"
+                >
+                  Reabrir Chat de WhatsApp
+                </button>
+              </div>
+            )}
+
+            {/* Back Button */}
+            <button
+              onClick={() => setSubmittedOrder(null)}
+              className="w-full mt-6 py-3 px-4 bg-red-650 bg-red-600 hover:bg-red-500 active:scale-98 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              Volver al Menú Principal
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen bg-[#121212] flex flex-col font-sans text-zinc-150 relative">
@@ -629,13 +755,13 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
       <section className="bg-gradient-to-b from-[#0d0d0f] to-[#121212] px-4 pt-6 pb-2 shrink-0 max-w-7xl mx-auto w-full">
         {/* Search tool - Smooth round pill */}
         <div className="relative max-w-md mx-auto mb-5">
-          <Search className="w-4 h-4 text-zinc-550 text-zinc-550 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Buscar hamburguesa, papas, bebidas..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-650 text-white placeholder-zinc-550 placeholder-zinc-500 transition-all focus:border-red-650"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#C5A059] text-white placeholder-zinc-500 transition-all focus:border-[#C5A059]"
           />
         </div>
 
@@ -659,8 +785,8 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-4.5 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-xs font-bold shrink-0 transition-all cursor-pointer border ${
                   selectedCategory === cat
-                    ? 'bg-red-600 border-red-600 text-white shadow-md shadow-red-950/25 scale-[1.02] font-extrabold'
-                    : 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:bg-zinc-850 hover:text-zinc-200'
+                    ? 'bg-[#C5A059] border-[#C5A059] text-[#121212] shadow-md shadow-[#C5A059]/20 scale-[1.02] font-extrabold'
+                    : 'bg-[#1E1E1E] border-[#2A2A2A] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
                 }`}
               >
                 {cat}
@@ -676,7 +802,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
         {filteredProducts.length === 0 ? (
           <div className="py-20 text-center text-zinc-500 max-w-sm mx-auto">
             <p className="text-sm font-semibold">No se encontraron delicias con estos filtros.</p>
-            <p className="text-xs mt-1 text-zinc-650 text-zinc-600">Probá borrando el texto de la barra de búsqueda o eligiendo otra sección del menú.</p>
+            <p className="text-xs mt-1 text-zinc-600">Probá borrando el texto de la barra de búsqueda o eligiendo otra sección del menú.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -687,7 +813,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               return (
                 <div 
                   key={p.id}
-                  className="bg-[#18181c] rounded-2xl border border-zinc-850 hover:border-red-600/30 transition-all duration-300 shadow-md group overflow-hidden flex flex-col h-full hover:shadow-xl hover:shadow-black/40"
+                  className="bg-[#1E1E1E] rounded-xl border border-[#2A2A2A] hover:border-[#C5A059]/40 transition-all duration-300 shadow-lg group overflow-hidden flex flex-col h-full hover:shadow-2xl hover:shadow-black/65"
                   id={`customer-item-${p.id}`}
                 >
                   {/* Image Container */}
@@ -721,37 +847,37 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                   <div className="flex-1 p-3 sm:p-5 flex flex-col justify-between">
                     <div>
                       {/* Mobile small category text */}
-                      <span className="inline-block md:hidden text-[8px] font-black text-red-500 uppercase tracking-widest">
+                      <span className="inline-block md:hidden text-[8px] font-black text-[#C5A059] uppercase tracking-widest">
                         {p.category}
                       </span>
-                      <h3 className="text-zinc-50 font-display font-extrabold text-[11px] sm:text-base leading-tight mt-0.5 md:mt-0 group-hover:text-red-500 transition-colors line-clamp-1" title={p.name}>
+                      <h3 className="text-[#F5F5F5] font-display font-extrabold text-[11px] sm:text-base leading-tight mt-0.5 md:mt-0 group-hover:text-[#C5A059] transition-colors line-clamp-1" title={p.name}>
                         {p.name}
                       </h3>
-                      <p className="text-zinc-300 font-sans text-[10px] sm:text-xs mt-1 md:mt-2 line-clamp-2 md:line-clamp-3 leading-relaxed">
+                      <p className="text-[#A0A0A0] font-sans text-[10px] sm:text-xs mt-1 md:mt-2 line-clamp-2 md:line-clamp-3 leading-relaxed">
                         {p.description}
                       </p>
                     </div>
 
                     <div className="flex items-center justify-between mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-zinc-800/40 gap-1.5">
-                      {/* Price with deep aesthetic red contrast */}
-                      <span className="font-display font-black text-xs sm:text-base md:text-lg text-red-500 whitespace-nowrap">
+                      {/* Price with deep aesthetic gold contrast */}
+                      <span className="font-display font-bold text-xs sm:text-base md:text-lg text-[#C5A059] whitespace-nowrap">
                         {formatCurrency(p.price)}
                       </span>
 
                       {/* Add block */}
                       <div className="shrink-0">
                         {qtyInCart > 0 ? (
-                          <div className="flex items-center bg-red-950/25 border border-red-900/45 rounded-lg p-0.5 select-none">
+                          <div className="flex items-center bg-[#C5A059]/10 border border-[#C5A059]/30 rounded-xl p-0.5 select-none">
                             <button
                               onClick={() => updateQuantity(p.id, -1)}
-                              className="w-5.5 h-5.5 sm:w-7 sm:h-7 rounded-md flex items-center justify-center text-red-400 hover:bg-red-950/65 transition-colors cursor-pointer"
+                              className="w-5.5 h-5.5 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-[#C5A059] hover:bg-[#C5A059]/25 transition-colors cursor-pointer"
                             >
                               <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                             </button>
-                            <span className="px-1.5 sm:px-2.5 text-[11px] sm:text-xs font-black text-white">{qtyInCart}</span>
+                            <span className="px-1.5 sm:px-2.5 text-[11px] sm:text-xs font-bold text-white">{qtyInCart}</span>
                             <button
                               onClick={() => updateQuantity(p.id, 1)}
-                              className="w-5.5 h-5.5 sm:w-7 sm:h-7 rounded-md flex items-center justify-center text-red-400 hover:bg-red-950/65 transition-colors cursor-pointer"
+                              className="w-5.5 h-5.5 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-[#C5A059] hover:bg-[#C5A059]/25 transition-colors cursor-pointer"
                             >
                               <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                             </button>
@@ -759,9 +885,9 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                         ) : (
                           <button
                             onClick={() => handleAddToCartClick(p)}
-                            className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-red-650 hover:bg-red-700 text-white rounded-lg text-[10px] sm:text-xs font-bold tracking-wide flex items-center gap-1 shadow-md shadow-red-950/30 transition-all active:scale-95 cursor-pointer"
+                            className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] rounded-xl text-[10px] sm:text-xs font-bold tracking-wide flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer"
                           >
-                            <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#121212]" />
                             <span>Agregar</span>
                           </button>
                         )}
@@ -799,20 +925,20 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
           <div className="max-w-3xl w-full flex items-center justify-between gap-6 px-2 md:px-4">
             <div>
               <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                <ShoppingBag className="w-3.5 h-3.5 text-red-500" />
+                <ShoppingBag className="w-3.5 h-3.5 text-[#C5A059]" />
                 Mi Canasta
               </p>
-              <p className="text-lg md:text-xl font-display font-black text-white mt-0.5">
+              <p className="text-lg md:text-xl font-display font-black text-[#F5F5F5] mt-0.5">
                 {formatCurrency(cartTotal)}
               </p>
             </div>
 
             <button
               onClick={() => setIsCheckoutOpen(true)}
-              className="px-6 py-3 bg-red-650 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-xl text-xs font-extrabold tracking-wide flex items-center gap-2 cursor-pointer shadow-lg shadow-red-950/40 transition-all hover:shadow-xl"
+              className="px-6 py-3 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] rounded-xl text-xs font-extrabold tracking-wide flex items-center gap-2 cursor-pointer shadow-lg shadow-[#C5A059]/25 transition-all hover:shadow-xl hover:shadow-black/35"
             >
               <span>Generar Pedido</span>
-              <ArrowRight className="w-4 h-4 animate-pulse" />
+              <ArrowRight className="w-4 h-4 animate-pulse text-[#121212]" />
             </button>
           </div>
         </div>
@@ -821,10 +947,10 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
       {/* 5. REDESIGNED CHECKOUT MODAL FRAME */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#141417] border border-zinc-800 rounded-2xl w-full max-w-md p-5 shadow-2xl max-h-[90%] overflow-auto text-zinc-150 scrollbar-thin">
+          <div className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-xl w-full max-w-md p-5 shadow-2xl max-h-[90%] overflow-auto text-zinc-150 scrollbar-thin">
             <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4">
               <h3 className="font-display font-black text-white text-base flex items-center gap-1.5 uppercase tracking-wide">
-                <MessageSquare className="w-5 h-5 text-red-500" />
+                <MessageSquare className="w-5 h-5 text-[#C5A059]" />
                 Detalles del Despacho
               </h3>
               <button
@@ -847,7 +973,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                   placeholder={orderType === 'local' ? "Ej: Tomás Carretero (Opcional)" : "Ej: Tomás Carretero"}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-red-500 placeholder-zinc-650"
+                  className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C5A059] placeholder-zinc-500"
                 />
               </div>
 
@@ -868,7 +994,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                       onClick={() => setOrderType(mode.key as any)}
                       className={`p-2.5 border rounded-xl flex flex-col items-center transition-all cursor-pointer ${
                         orderType === mode.key
-                          ? 'border-red-650 bg-red-950/20 text-red-400'
+                          ? 'border-[#C5A059] bg-[#C5A059]/15 text-[#C5A059]'
                           : 'border-zinc-800 text-zinc-500 hover:bg-zinc-850 hover:text-zinc-300'
                       }`}
                     >
@@ -888,7 +1014,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                   <select
                     value={tableNumber}
                     onChange={(e) => setTableNumber(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white cursor-pointer focus:ring-1 focus:ring-red-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white cursor-pointer focus:ring-1 focus:ring-[#C5A059] focus:outline-none"
                   >
                     {Array.from({ length: 12 }, (_, i) => `Mesa ${i + 1}`).map((mesa) => (
                       <option key={mesa} className="bg-zinc-900" value={mesa}>
@@ -911,7 +1037,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                     placeholder="Ej: Av. Pellegrini 1420, Piso 3A"
                     value={deliveryAddress}
                     onChange={(e) => setDeliveryAddress(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-red-500 placeholder-zinc-600"
+                    className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C5A059] placeholder-zinc-600"
                   />
                 </div>
               )}
@@ -926,7 +1052,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                   placeholder="Ej: 3415559876"
                   value={customerContact}
                   onChange={(e) => setCustomerContact(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-red-500 placeholder-zinc-600"
+                  className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C5A059] placeholder-zinc-600"
                 />
               </div>
 
@@ -958,7 +1084,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                         onClick={() => setPaymentMethod(method)}
                         className={`py-2.5 px-1 text-center rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                           paymentMethod === method
-                            ? 'bg-red-600/25 border-red-500 text-red-400 font-black shadow-md shadow-red-950/40'
+                            ? 'bg-[#C5A059]/15 border-[#C5A059] text-[#C5A059] font-bold shadow-md shadow-black/40'
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                         }`}
                       >
@@ -979,16 +1105,16 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                   placeholder="Ej: Sin cebolla en la de Doble Cheddar, por favor..."
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none resize-none focus:ring-1 focus:ring-red-500 placeholder-zinc-650"
+                  className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none resize-none focus:ring-1 focus:ring-[#C5A059] placeholder-zinc-500"
                 />
               </div>
 
               {/* Account summary details with full interactive list of chosen items */}
-              <div className="bg-zinc-900 p-3.5 rounded-xl border border-zinc-800 space-y-2">
+              <div className="bg-[#1E1E1E] p-3.5 rounded-xl border border-[#2A2A2A] space-y-2">
                 <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest border-b border-zinc-800 pb-1">
                   Resumen de Cuenta
                 </p>
-                <div className="max-h-28 overflow-y-auto divide-y divide-zinc-805 divide-zinc-800/40 pr-1 space-y-2">
+                <div className="max-h-28 overflow-y-auto divide-y divide-zinc-800/40 pr-1 space-y-2">
                   {cart.map((it, idx) => {
                     const customUnitPrice = getCartItemUnitPrice(it);
                     return (
@@ -998,12 +1124,12 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                             {it.quantity}x {it.product.name}
                           </p>
                           {it.selectedDressings && it.selectedDressings.length > 0 && (
-                            <p className="text-[10px] text-red-400 font-medium pl-1 mt-0.5">
+                            <p className="text-[10px] text-[#C5A059] font-medium pl-1 mt-0.5">
                               Aderezos: {it.selectedDressings.join(', ')}
                             </p>
                           )}
                           {it.selectedSideDishes && it.selectedSideDishes.length > 0 && (
-                            <p className="text-[10px] text-amber-400 font-semibold pl-1 mt-0.5">
+                            <p className="text-[10px] text-[#C5A059] font-semibold pl-1 mt-0.5">
                               Guarnición: {it.selectedSideDishes.map(d => d.name).join(', ')}
                             </p>
                           )}
@@ -1015,20 +1141,20 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                     );
                   })}
                 </div>
-                <div className="space-y-1 pt-2 border-t border-zinc-805 border-zinc-800/60 font-sans text-xs">
+                <div className="space-y-1 pt-2 border-t border-zinc-800/60 font-sans text-xs">
                   <div className="flex justify-between font-medium">
                     <span className="text-zinc-400">Subtotal de Compra:</span>
                     <span className="text-zinc-200 font-mono">{formatCurrency(cartTotal)}</span>
                   </div>
                   {orderType === 'delivery' && (
-                    <div className="flex justify-between font-medium text-amber-500">
+                    <div className="flex justify-between font-medium text-[#C5A059]">
                       <span>Costo de Envío:</span>
                       <span className="font-mono">{formatCurrency(1200)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between font-bold text-sm pt-2.5 border-t border-zinc-800/80">
+                  <div className="flex justify-between font-bold text-sm pt-2.5 border-t border-zinc-850">
                     <span className="text-zinc-200">Total a Pagar:</span>
-                    <span className="text-red-500 font-black">{formatCurrency(cartTotal + (orderType === 'delivery' ? 1200 : 0))}</span>
+                    <span className="text-[#C5A059] font-bold">{formatCurrency(cartTotal + (orderType === 'delivery' ? 1200 : 0))}</span>
                   </div>
                 </div>
                 {orderType === 'delivery' && (
@@ -1039,10 +1165,10 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               {/* WhatsApp dispatcher */}
               <button
                 type="submit"
-                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black tracking-wide flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all active:scale-95"
+                className="w-full py-3 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] rounded-xl text-xs font-bold tracking-wide flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all active:scale-95"
               >
                 <span>Enviar Pedido a WhatsApp</span>
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="w-4 h-4 text-[#121212]" />
               </button>
             </form>
           </div>
@@ -1190,10 +1316,10 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
       {/* ==================== DRESSING SELECTION MODAL ==================== */}
       {dressingProduct && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#141417] border border-zinc-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl animate-scale-up text-zinc-150">
+          <div className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-xl w-full max-w-sm p-5 shadow-2xl animate-scale-up text-zinc-150">
             <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4 font-sans">
               <h3 className="font-display font-black text-white text-sm flex items-center gap-1.5 uppercase">
-                <Sparkles className="w-4 h-4 text-red-500 animate-pulse" />
+                <Sparkles className="w-4 h-4 text-[#C5A059] animate-pulse" />
                 Personalizar {dressingProduct.name}
               </h3>
               <button
@@ -1214,17 +1340,17 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                   key={optionName}
                   className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
                     dressingOptions[optionName]
-                      ? 'bg-red-950/20 border-red-900/60 text-white'
+                      ? 'bg-[#C5A059]/10 border-[#C5A059]/30 text-white'
                       : 'bg-zinc-900/50 border-zinc-800/80 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 font-sans">
                     <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
                       dressingOptions[optionName]
-                        ? 'bg-red-600 border-red-600 text-white'
+                        ? 'bg-[#C5A059] border-[#C5A059] text-[#121212]'
                         : 'border-zinc-700 bg-zinc-850'
                     }`}>
-                      {dressingOptions[optionName] && <Check className="w-3 h-3 stroke-[3]" />}
+                      {dressingOptions[optionName] && <Check className="w-3 h-3 stroke-[3] text-[#121212]" />}
                     </div>
                     <span className="text-[12px] font-extrabold">{optionName}</span>
                   </div>
@@ -1243,10 +1369,10 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
 
             <button
               onClick={confirmAddWithDressings}
-              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-950/30 transition-all active:scale-95"
+              className="w-full py-3 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] font-black text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-all active:scale-95"
             >
               <span>Añadir a la Canasta</span>
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 text-[#121212]" />
             </button>
           </div>
         </div>
@@ -1255,10 +1381,10 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
       {/* ==================== PLATE SIDE-DISH SELECTION MODAL ==================== */}
       {sideDishProduct && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#141417] border border-zinc-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl animate-scale-up text-zinc-150">
+          <div className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-xl w-full max-w-sm p-5 shadow-2xl animate-scale-up text-zinc-150">
             <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4 font-sans">
               <h3 className="font-display font-black text-white text-sm flex items-center gap-1.5 uppercase">
-                <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+                <Sparkles className="w-4 h-4 text-[#C5A059] animate-pulse" />
                 Personalizar {sideDishProduct.name}
               </h3>
               <button
@@ -1298,17 +1424,17 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                     key={guarnicion.id}
                     className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
                       isSelected
-                        ? 'bg-amber-950/20 border-amber-900/60 text-white'
+                        ? 'bg-[#C5A059]/10 border-[#C5A059]/30 text-white'
                         : 'bg-zinc-900/50 border-zinc-800/80 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 font-sans">
                       <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
                         isSelected
-                          ? 'bg-amber-600 border-amber-600 text-white'
+                          ? 'bg-[#C5A059] border-[#C5A059] text-[#121212]'
                           : 'border-zinc-700 bg-zinc-850'
                       }`}>
-                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                        {isSelected && <Check className="w-3 h-3 stroke-[3] text-[#121212]" />}
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[12px] font-extrabold">{guarnicion.name}</span>
@@ -1320,9 +1446,9 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
                     
                     <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
                       isSelected && guarnicion.id === freeGuarnicionId
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        ? 'bg-[#C5A059]/15 text-[#C5A059] border border-[#C5A059]/25'
                         : isSelected
-                        ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        ? 'bg-[#C5A059]/15 text-[#C5A059] border border-[#C5A059]/25'
                         : 'bg-zinc-800 text-zinc-400'
                     }`}>
                       {priceLabel}
@@ -1362,10 +1488,10 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
 
             <button
               onClick={confirmAddWithSideDishes}
-              className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-950/30 transition-all active:scale-95"
+              className="w-full py-3 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] font-black text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-all active:scale-95"
             >
               <span>Añadir a la Canasta</span>
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 text-[#121212]" />
             </button>
           </div>
         </div>
