@@ -20,11 +20,12 @@ export default function App() {
   
   // Cinematographic Intro State & Images Array
   const [introStage, setIntroStage] = useState<number>(0);
+  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
   
   const introImages = [
     {
       id: 0,
-      url: '/input_file_3.png', // lejos
+      url: 'https://i.ibb.co/yFSdgwVf/fachada.jpg', // lejos
       alt: 'El Carretero - Lo de Julia (Lejos)',
       titleEs: 'El Carretero - Lo de Julia',
       titlePt: 'El Carretero - Lo de Julia',
@@ -33,7 +34,7 @@ export default function App() {
     },
     {
       id: 1,
-      url: '/input_file_4.png', // puerta
+      url: 'https://i.ibb.co/S4w5xGjR/puerta.jpg', // puerta
       alt: 'El Carretero - Lo de Julia (Puerta)',
       titleEs: 'La Entrada',
       titlePt: 'A Entrada',
@@ -42,7 +43,7 @@ export default function App() {
     },
     {
       id: 2,
-      url: '/input_file_0.png', // adentro 1
+      url: 'https://i.ibb.co/MJhJXQ1/salon1.jpg', // adentro 1
       alt: 'El Carretero - Lo de Julia (Adentro 1)',
       titleEs: 'Nuestro Salón',
       titlePt: 'Nosso Salão',
@@ -51,7 +52,7 @@ export default function App() {
     },
     {
       id: 3,
-      url: '/input_file_1.png', // adentro 2
+      url: 'https://i.ibb.co/sJmycx9s/salon2.jpg', // adentro 2
       alt: 'El Carretero - Lo de Julia (Adentro 2)',
       titleEs: 'Rincón de Campo',
       titlePt: 'Canto de Campo',
@@ -60,7 +61,7 @@ export default function App() {
     },
     {
       id: 4,
-      url: '/input_file_2.png', // adentro 3
+      url: 'https://i.ibb.co/bjr1SKtn/salon3.jpg', // adentro 3
       alt: 'El Carretero - Lo de Julia (Adentro 3)',
       titleEs: 'Tu Mesa te Espera',
       titlePt: 'Sua Mesa te Espera',
@@ -320,12 +321,17 @@ export default function App() {
                       introStage === image.id ? 'opacity-100 scale-105' : 'opacity-0 scale-100 pointer-events-none'
                     }`}
                   >
-                    <img
-                      src={image.url}
-                      alt={image.alt}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+                    {!imageErrors[image.id] ? (
+                      <img
+                        src={image.url}
+                        alt={image.alt}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={() => setImageErrors((prev) => ({ ...prev, [image.id]: true }))}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-[#0d0d0f]" />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/60" />
                     
                     <div className="absolute bottom-24 left-8 md:left-16 max-w-lg text-left z-10 animate-fade-in">
