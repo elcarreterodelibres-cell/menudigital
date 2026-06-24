@@ -88,13 +88,13 @@ export default function SettingsPanel({ config, setConfig }: SettingsPanelProps)
               <input
                 type="text"
                 required
-                placeholder="Ej: 5493415551234"
+                placeholder="Ej: 5493772303777"
                 value={whatsappPhone}
                 onChange={(e) => setWhatsappPhone(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono text-slate-900 focus:ring-1 focus:ring-red-650"
               />
               <p className="text-[9px] text-slate-400 font-normal mt-1">
-                Colocá el código de país sin el símbolo "+", espacios ni guiones. Ej: 5493415551234
+                Colocá el código de país sin el símbolo "+", espacios ni guiones. Ej: 5493772303777
               </p>
             </div>
 

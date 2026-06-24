@@ -475,7 +475,7 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
       customerContact: customerContact || undefined,
       deliveryAddress: orderType === 'delivery' ? deliveryAddress : undefined,
       notes: orderNotes.trim() || undefined,
-      paymentMethod: paymentMethod,
+      paymentMethod: orderType === 'local' ? 'Pago al finalizar' : paymentMethod,
       deliveryCost: costOfDelivery || undefined,
     };
 
@@ -493,7 +493,11 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
     if (customerContact) {
       text += `📞 *Teléfono:* ${customerContact}\n`;
     }
-    text += `💳 *Método de Pago:* ${paymentMethod}\n`;
+    if (orderType === 'local') {
+      text += `💳 *Método de Pago:* Consumo en Mesa (Se pide la cuenta al final) 🍽️\n`;
+    } else {
+      text += `💳 *Método de Pago:* ${paymentMethod}\n`;
+    }
     if (orderNotes.trim()) {
       text += `✍️ *Aclaraciones:* _"${orderNotes}"_\n`;
     }
@@ -927,27 +931,43 @@ export default function CustomerMenu({ products, onOrderSubmitted, whatsappPhone
               </div>
 
               {/* Payment Method */}
-              <div>
-                <label className="block text-zinc-400 text-[10px] font-black tracking-wider uppercase mb-1.5">
-                  Método de Pago Preferido *
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['Mercado Pago', 'Efectivo', 'Tarjeta'].map((method) => (
-                    <button
-                      key={method}
-                      type="button"
-                      onClick={() => setPaymentMethod(method)}
-                      className={`py-2.5 px-1 text-center rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                        paymentMethod === method
-                          ? 'bg-red-600/25 border-red-500 text-red-400 font-black shadow-md shadow-red-950/40'
-                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
-                      }`}
-                    >
-                      {method === 'Mercado Pago' ? '📱 MP' : method === 'Efectivo' ? '💵 Efectivo' : '💳 Tarjeta'}
-                    </button>
-                  ))}
+              {orderType === 'local' ? (
+                <div className="p-3.5 bg-zinc-900/40 border border-zinc-850 rounded-xl flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400 text-sm shrink-0">
+                    🍽️
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-black text-zinc-200">
+                      ¡Comés primero, pagás al final!
+                    </p>
+                    <p className="text-[10px] text-zinc-500 font-bold leading-relaxed">
+                      Pedí lo que quieras. Podés solicitar la cuenta directamente al mozo cuando termines de comer.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label className="block text-zinc-400 text-[10px] font-black tracking-wider uppercase mb-1.5">
+                    Método de Pago Preferido *
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Mercado Pago', 'Efectivo', 'Tarjeta'].map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => setPaymentMethod(method)}
+                        className={`py-2.5 px-1 text-center rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          paymentMethod === method
+                            ? 'bg-red-600/25 border-red-500 text-red-400 font-black shadow-md shadow-red-950/40'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                        }`}
+                      >
+                        {method === 'Mercado Pago' ? '📱 MP' : method === 'Efectivo' ? '💵 Efectivo' : '💳 Tarjeta'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Extra instructions */}
               <div>

@@ -19,7 +19,7 @@ export default function MenuPanel({ products, setOrders, onOrderSuccess }: MenuP
   const [tableNumber, setTableNumber] = useState<string>('Mesa 1');
   const [customerContact, setCustomerContact] = useState<string>('');
   const [deliveryAddress, setDeliveryAddress] = useState<string>('');
-  const [whatsappNumber, setWhatsappNumber] = useState<string>('5493415551234'); // Business Phone
+  const [whatsappNumber, setWhatsappNumber] = useState<string>('5493772303777'); // Business Phone
 
   // Extract categories
   const preferredCategoryOrder = [

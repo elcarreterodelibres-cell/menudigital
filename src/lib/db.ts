@@ -176,7 +176,7 @@ class FirestoreSimulator {
       tablesCount: number;
       adminPin: string;
     }>('fs_business_config', {
-      whatsappPhone: '5493415551234',
+      whatsappPhone: '5493772303777',
       businessName: 'El Carretero',
       qrUrl: window.location.origin,
       tablesCount: 12,
@@ -184,6 +184,10 @@ class FirestoreSimulator {
     });
     if (config.businessName === 'BurgerControl') {
       config.businessName = 'El Carretero';
+      this.saveBusinessConfig(config);
+    }
+    if (config.whatsappPhone === '5493415551234') {
+      config.whatsappPhone = '5493772303777';
       this.saveBusinessConfig(config);
     }
     return config;
