@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, CartItem, Order } from '../types';
-import { ShoppingCart, Plus, Minus, Trash2, Send, CheckCircle, Smartphone } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, Send, CheckCircle, Smartphone, X } from 'lucide-react';
 import { useToast } from './ToastContext';
 
 interface MenuPanelProps {
@@ -14,6 +14,7 @@ export default function MenuPanel({ products, setOrders, onOrderSuccess }: MenuP
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
   
   // Checkout form state
   const [customerName, setCustomerName] = useState<string>('');
@@ -144,9 +145,9 @@ export default function MenuPanel({ products, setOrders, onOrderSuccess }: MenuP
   };
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
-      {/* Menu / Product list segment - left side */}
-      <div className="flex-[2] flex flex-col gap-4 overflow-hidden">
+    <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden pb-16 lg:pb-0">
+      {/* Menu / Product list segment - left side (65%) */}
+      <div className="flex-1 lg:flex-[0_0_65%] flex flex-col gap-4 overflow-hidden">
         <div>
           <h2 className="text-xl font-bold text-slate-900 leading-tight">Menú Digital Autogestionable</h2>
           <p className="text-xs text-slate-500 mt-1">
@@ -211,8 +212,8 @@ export default function MenuPanel({ products, setOrders, onOrderSuccess }: MenuP
         </div>
       </div>
 
-      {/* Cart Panel - right side */}
-      <div className="flex-[1] bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-[350px]">
+      {/* Cart Panel - right side (35% on Desktop, hidden on Mobile/Tablet) */}
+      <div className="hidden lg:flex lg:flex-[0_0_35%] bg-white rounded-xl border border-slate-200 shadow-sm flex-col overflow-hidden min-h-[350px]">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2">
             <ShoppingCart className="w-4 h-4 text-slate-700" />
@@ -302,6 +303,127 @@ export default function MenuPanel({ products, setOrders, onOrderSuccess }: MenuP
           </div>
         )}
       </div>
+
+      {/* Mobile Floating Cart Button */}
+      {cart.length > 0 && (
+        <div className="lg:hidden fixed bottom-4 inset-x-4 z-40">
+          <button
+            type="button"
+            onClick={() => setIsMobileCartOpen(true)}
+            className="w-full bg-red-600 hover:bg-red-700 text-white shadow-xl rounded-xl p-4 flex items-center justify-between font-bold cursor-pointer transition-transform active:scale-95"
+          >
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              <span>Ver Pedido ({cart.reduce((sum, item) => sum + item.quantity, 0)})</span>
+            </div>
+            <span className="bg-white/20 px-3 py-1 rounded-lg text-sm">
+              {formatCurrency(cartTotal)}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Cart Modal Dialog */}
+      {isMobileCartOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center p-4 backdrop-blur-xs lg:hidden">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden flex flex-col max-h-[80vh] sm:max-h-[70vh]">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2 text-slate-900">
+                <ShoppingCart className="w-5 h-5 text-red-600" />
+                <h3 className="font-bold">Resumen de Pedido</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileCartOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto p-4 space-y-3">
+              {cart.map((item) => (
+                <div
+                  key={item.product.id}
+                  className="flex items-center justify-between gap-2 p-3 rounded-lg bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate">
+                      {item.product.name}
+                    </p>
+                    <p className="text-[10px] font-mono font-bold text-red-600">
+                      {formatCurrency(item.product.price)} c/u
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center border border-slate-200 rounded-md bg-white">
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.product.id, -1)}
+                        className="p-1 px-1.5 text-xs text-slate-500 hover:bg-slate-100 cursor-pointer"
+                      >
+                        <Minus className="w-2.5 h-2.5" />
+                      </button>
+                      <span className="px-1 text-xs font-bold text-slate-900">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.product.id, 1)}
+                        className="p-1 px-1.5 text-xs text-slate-500 hover:bg-slate-100 cursor-pointer"
+                      >
+                        <Plus className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeFromCart(item.product.id)}
+                      className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                      title="Remover"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 space-y-3">
+              <div className="flex justify-between items-center text-xs font-bold text-slate-900">
+                <span className="text-slate-500 uppercase tracking-wider">Monto Total:</span>
+                <span className="text-lg font-extrabold text-red-600">
+                  {formatCurrency(cartTotal)}
+                </span>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearCart();
+                    setIsMobileCartOpen(false);
+                  }}
+                  className="px-3 py-2.5 border border-slate-200 hover:bg-slate-100 rounded-md text-xs font-bold text-red-650 transition-colors"
+                >
+                  Vaciar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileCartOpen(false);
+                    setIsCheckoutOpen(true);
+                  }}
+                  className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-md text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  Registrar Pedido <Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
  
       {/* Checkout modal dialog */}
       {isCheckoutOpen && (

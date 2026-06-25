@@ -1203,7 +1203,7 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#121212] flex flex-col font-sans text-zinc-150 relative">
+    <div className="w-full min-h-screen bg-transparent flex flex-col font-sans text-zinc-150 relative">
       
       {/* 1. FIXED & COMPACT NAVBAR (Cabecera Optimizada) */}
       <header className="sticky top-0 bg-[#0d0d0f]/90 backdrop-blur-md z-40 border-b border-zinc-850 h-14 md:h-16 flex items-center justify-between px-4 md:px-8 shadow-lg shrink-0">
@@ -1324,24 +1324,24 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       </header>
 
       {/* Hero simple gourmet style with search and categories */}
-      <section className="bg-gradient-to-b from-[#0d0d0f] to-[#121212] px-4 pt-6 pb-2 shrink-0 max-w-7xl mx-auto w-full">
+      <section className="bg-transparent px-4 pt-6 pb-2 shrink-0 max-w-7xl mx-auto w-full">
         {/* Search tool - Smooth round pill */}
         <div className="relative max-w-md mx-auto mb-5">
-          <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-white absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder={t("Buscar hamburguesa, papas, bebidas...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#C5A059] text-white placeholder-zinc-500 transition-all focus:border-[#C5A059]"
+            className="w-full pl-10 pr-4 py-2.5 bg-black/50 border border-white/10 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#C5A059] text-white placeholder-zinc-400 transition-all focus:border-[#C5A059]"
           />
         </div>
 
         {/* Categories Carousel - Rounded Pills with mobile touch scroll */}
         <div className="relative w-full max-w-4xl mx-auto overflow-hidden px-1 mb-2">
           {/* Subtle fade edges for overflow indicators */}
-          <div className="absolute left-0 top-0 bottom-3 w-6 bg-gradient-to-r from-[#121212] to-transparent pointer-events-none z-10" />
-          <div className="absolute right-0 top-0 bottom-3 w-6 bg-gradient-to-l from-[#121212] to-transparent pointer-events-none z-10" />
+          <div className="absolute left-0 top-0 bottom-3 w-6 bg-gradient-to-r from-black/20 to-transparent pointer-events-none z-10" />
+          <div className="absolute right-0 top-0 bottom-3 w-6 bg-gradient-to-l from-black/20 to-transparent pointer-events-none z-10" />
 
           <div
             ref={categoriesRef}
@@ -1358,7 +1358,7 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
                 className={`px-4.5 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-xs font-bold shrink-0 transition-all cursor-pointer border ${
                   selectedCategory === cat
                     ? 'bg-[#C5A059] border-[#C5A059] text-[#121212] shadow-md shadow-[#C5A059]/20 scale-[1.02] font-extrabold'
-                    : 'bg-[#1E1E1E] border-[#2A2A2A] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                    : 'bg-black/50 border-white/10 text-amber-50/90 hover:bg-black/70 hover:text-white'
                 }`}
               >
                 {cat}
@@ -1385,11 +1385,11 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
               return (
                 <div 
                   key={p.id}
-                  className="bg-[#1E1E1E] rounded-xl border border-[#2A2A2A] hover:border-[#C5A059]/40 transition-all duration-300 shadow-lg group overflow-hidden flex flex-col h-full hover:shadow-2xl hover:shadow-black/65"
+                  className="bg-black/40 backdrop-blur-sm rounded-xl border border-white/10 hover:border-[#C5A059]/40 transition-all duration-300 shadow-lg group overflow-hidden flex flex-col h-full hover:shadow-2xl hover:shadow-black/65"
                   id={`customer-item-${p.id}`}
                 >
                   {/* Image Container */}
-                  <div className="w-full h-24 sm:h-36 md:h-48 lg:h-52 relative overflow-hidden shrink-0 bg-zinc-900 border-b border-zinc-850/40">
+                  <div className="w-full h-24 sm:h-36 md:h-48 lg:h-52 relative overflow-hidden shrink-0 bg-zinc-900/60 border-b border-white/5">
                     <img 
                       src={prodImg} 
                       alt={p.name}
@@ -1407,10 +1407,10 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                     
                     {/* Floating badge by category */}
-                    <span className="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-zinc-300 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border border-zinc-800/60 shadow">
+                    <span className="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-zinc-300 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border border-white/10 shadow">
                       {p.category}
                     </span>
                   </div>
@@ -1422,34 +1422,34 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
                       <span className="inline-block md:hidden text-[8px] font-black text-[#C5A059] uppercase tracking-widest">
                         {p.category}
                       </span>
-                      <h3 className="text-[#F5F5F5] font-display font-extrabold text-[11px] sm:text-base leading-tight mt-0.5 md:mt-0 group-hover:text-[#C5A059] transition-colors line-clamp-1" title={p.name}>
+                      <h3 className="text-white font-display font-extrabold text-[12px] sm:text-base leading-tight mt-0.5 md:mt-0 group-hover:text-amber-400 transition-colors" title={p.name}>
                         {p.name}
                       </h3>
-                      <p className="text-[#A0A0A0] font-sans text-[10px] sm:text-xs mt-1 md:mt-2 line-clamp-2 md:line-clamp-3 leading-relaxed">
+                      <p className="text-amber-50/80 font-sans text-[10px] sm:text-xs mt-1 md:mt-2 line-clamp-2 md:line-clamp-3 leading-relaxed">
                         {p.description}
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-zinc-800/40 gap-1.5">
+                    <div className="flex items-center justify-between mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-white/5 gap-1.5">
                       {/* Price with deep aesthetic gold contrast */}
-                      <span className="font-display font-bold text-xs sm:text-base md:text-lg text-[#C5A059] whitespace-nowrap">
+                      <span className="font-display font-black text-sm sm:text-lg md:text-xl text-yellow-400 whitespace-nowrap">
                         {formatCurrency(p.price)}
                       </span>
 
                       {/* Add block */}
                       <div className="shrink-0">
                         {qtyInCart > 0 ? (
-                          <div className="flex items-center bg-[#C5A059]/10 border border-[#C5A059]/30 rounded-xl p-0.5 select-none">
+                          <div className="flex items-center bg-[#C5A059]/15 border border-[#C5A059]/40 rounded-xl p-0.5 select-none">
                             <button
                               onClick={() => updateQuantity(p.id, -1)}
-                              className="w-5.5 h-5.5 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-[#C5A059] hover:bg-[#C5A059]/25 transition-colors cursor-pointer"
+                              className="w-5.5 h-5.5 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-[#C5A059] hover:bg-[#C5A059]/30 transition-colors cursor-pointer"
                             >
                               <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                             </button>
                             <span className="px-1.5 sm:px-2.5 text-[11px] sm:text-xs font-bold text-white">{qtyInCart}</span>
                             <button
                               onClick={() => updateQuantity(p.id, 1)}
-                              className="w-5.5 h-5.5 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-[#C5A059] hover:bg-[#C5A059]/25 transition-colors cursor-pointer"
+                              className="w-5.5 h-5.5 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-[#C5A059] hover:bg-[#C5A059]/30 transition-colors cursor-pointer"
                             >
                               <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                             </button>
@@ -1474,7 +1474,7 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       </main>
 
       {/* Discrete Footer with Admin Lock */}
-      <footer className="mt-auto py-10 border-t border-zinc-900 bg-[#0c0c0f] text-center text-zinc-600 font-sans text-[11px] select-none pb-24">
+      <footer className="mt-auto py-10 border-t border-zinc-900 bg-[#0c0c0f]/60 backdrop-blur-xs text-center text-zinc-600 font-sans text-[11px] select-none pb-24">
         <p className="font-bold text-zinc-500 uppercase tracking-widest mb-1">
           {businessName} • Carta Digital QR
         </p>

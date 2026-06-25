@@ -9,6 +9,8 @@ interface SidebarProps {
   toggleAdminTheme: () => void;
   notificationPermission?: string;
   requestNotificationPermission?: () => Promise<string>;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export default function Sidebar({
@@ -19,6 +21,8 @@ export default function Sidebar({
   toggleAdminTheme,
   notificationPermission = 'default',
   requestNotificationPermission,
+  isOpen = false,
+  onClose,
 }: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Panel Principal', icon: '📊', group: 'Gestión' },
@@ -30,66 +34,97 @@ export default function Sidebar({
     { id: 'architecture', label: 'Esquema & Backend', icon: '🗄️', group: 'Administración' },
   ];
 
+  const handleItemClick = (id: string) => {
+    setCurrentTab(id);
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 select-none">
-      <div className="p-6 space-y-8 flex-1">
-        <div className="space-y-6">
-          <p className="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Gestión Comercial</p>
-          <nav className="space-y-1">
-            {menuItems
-              .filter((item) => item.group === 'Gestión')
-              .map((item) => {
-                const isActive = currentTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setCurrentTab(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-all text-sm font-medium ${
-                      isActive
-                        ? 'bg-slate-800 text-white shadow-sm'
-                        : 'hover:bg-slate-800/60 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <span className="flex items-center gap-3">
-                      <span className="text-lg">{item.icon}</span>
-                      {item.label}
-                    </span>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-          </nav>
+    <>
+      {/* Mobile Sidebar backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside 
+        className={`bg-slate-900 text-slate-300 flex flex-col select-none transition-transform duration-300 shrink-0 h-full md:h-auto z-50
+          fixed inset-y-0 left-0 w-64 md:static md:translate-x-0 md:flex
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        {/* Close Button on Mobile Sidebar */}
+        <div className="flex justify-end p-4 md:hidden border-b border-slate-800">
+          <button 
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg focus:outline-none text-xs font-bold"
+          >
+            Cerrar Menú ✕
+          </button>
         </div>
 
-        <div className="space-y-6">
-          <p className="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Especificación Técnica</p>
-          <nav className="space-y-1">
-            {menuItems
-              .filter((item) => item.group === 'Administración')
-              .map((item) => {
-                const isActive = currentTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setCurrentTab(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all text-sm font-medium ${
-                      isActive
-                        ? 'bg-slate-800 text-white shadow-sm'
-                        : 'hover:bg-slate-800/60 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <span className="text-lg">{item.icon}</span>
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-          </nav>
+        <div className="p-6 space-y-8 flex-1 overflow-y-auto">
+          <div className="space-y-6">
+            <p className="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Gestión Comercial</p>
+            <nav className="space-y-1">
+              {menuItems
+                .filter((item) => item.group === 'Gestión')
+                .map((item) => {
+                  const isActive = currentTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleItemClick(item.id)}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-all text-sm font-medium cursor-pointer ${
+                        isActive
+                          ? 'bg-slate-800 text-white shadow-sm'
+                          : 'hover:bg-slate-800/60 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className="text-lg">{item.icon}</span>
+                        {item.label}
+                      </span>
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+            </nav>
+          </div>
+
+          <div className="space-y-6">
+            <p className="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Especificación Técnica</p>
+            <nav className="space-y-1">
+              {menuItems
+                .filter((item) => item.group === 'Administración')
+                .map((item) => {
+                  const isActive = currentTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleItemClick(item.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all text-sm font-medium cursor-pointer ${
+                        isActive
+                          ? 'bg-slate-800 text-white shadow-sm'
+                          : 'hover:bg-slate-800/60 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="text-lg">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+            </nav>
+          </div>
         </div>
-      </div>
 
       <div className="p-6 border-t border-slate-800 bg-slate-950/40">
         <div className="flex items-center justify-between mb-4 bg-slate-900 border border-slate-800 rounded-xl p-2.5">
@@ -176,5 +211,6 @@ export default function Sidebar({
         </div>
       </div>
     </aside>
+    </>
   );
 }

@@ -12,7 +12,7 @@ import { useToast } from './components/ToastContext';
 
 import { Product, Ingredient, Order } from './types';
 import { db } from './lib/db';
-import { Smartphone, LayoutDashboard, QrCode, Lock, ShieldCheck, RotateCcw, Printer } from 'lucide-react';
+import { Smartphone, LayoutDashboard, QrCode, Lock, ShieldCheck, RotateCcw, Printer, Menu } from 'lucide-react';
 import { generateOrderTicketPDF, generateConsolidatedTicketsPDF } from './utils/pdfGenerator';
 
 export default function App() {
@@ -121,6 +121,7 @@ export default function App() {
   // Printing states for Comanda ticketing system
   const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
   const [selectedOrderIdToPrint, setSelectedOrderIdToPrint] = useState<string>('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
   // Native Browser Web Notifications state & actions
   const [notificationPermission, setNotificationPermission] = useState<string>(() => {
@@ -301,8 +302,17 @@ export default function App() {
       {viewMode === 'client' ? (
         /* ======================== CLIENT VIEW MOUNT ======================== */
         /* 100% DECOUPLED CLIENT VIEW - NO ADMIN OVERLAYS, BARS OR SWITCHERS */
-        <div className="flex-1 overflow-auto bg-[#0a0a0c] flex justify-center animate-fade-in">
-          <div className="w-full max-w-7xl bg-[#121212] min-h-screen shadow-2xl flex flex-col relative">
+        <div 
+          className="flex-1 overflow-auto flex justify-center animate-fade-in"
+          style={{
+            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.75)), url('https://png.pngtree.com/thumb_back/fh260/background/20240913/pngtree-rustic-reclaimed-wood-plank-wall-texture-background-image_16192562.jpg')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundAttachment: 'fixed',
+            backgroundRepeat: 'no-repeat',
+          }}
+        >
+          <div className="w-full max-w-7xl bg-[#121212]/40 backdrop-blur-[3px] min-h-screen shadow-2xl flex flex-col relative">
             <CustomerMenu
               products={products}
               onOrderSubmitted={handleOrderSubmittedByClient}
@@ -457,21 +467,29 @@ export default function App() {
         /* ======================== ADMIN VIEW MOUNT ======================== */
         <div className={`flex-1 flex flex-col overflow-hidden ${adminTheme === 'dark' ? 'dark' : ''}`}>
           {/* Main admin navigation headers */}
-          <nav className="h-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 shrink-0 shadow-sm z-30 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center text-white font-black text-xl shadow-sm hover:rotate-6 transition-transform">
+          <nav className="h-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-30 transition-colors">
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Hamburger button */}
+              <button
+                onClick={() => setIsSidebarOpen((prev) => !prev)}
+                className="p-1.5 md:hidden text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg cursor-pointer transition-colors"
+                title="Abrir menú"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-red-600 rounded-lg flex items-center justify-center text-white font-black text-lg md:text-xl shadow-sm hover:rotate-6 transition-transform">
                 {config.businessName ? config.businessName.charAt(0).toUpperCase() : 'B'}
               </div>
-              <span className="text-xl font-bold tracking-tight text-slate-950 dark:text-slate-100 flex items-center gap-1.5 select-none transition-colors">
-                {config.businessName}
-                <span className="bg-red-650 bg-red-600 text-white text-[10px] font-black tracking-widest px-1.5 py-0.5 rounded-sm uppercase">
+              <span className="text-sm md:text-xl font-bold tracking-tight text-slate-950 dark:text-slate-100 flex items-center gap-1 md:gap-1.5 select-none transition-colors">
+                <span className="truncate max-w-[100px] sm:max-w-none">{config.businessName}</span>
+                <span className="bg-red-650 bg-red-600 text-white text-[8px] md:text-[10px] font-black tracking-widest px-1 md:px-1.5 py-0.5 rounded-sm uppercase shrink-0">
                   ADMIN
                 </span>
               </span>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-end">
+            <div className="flex items-center gap-1.5 md:gap-4">
+              <div className="hidden lg:flex flex-col items-end">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                   Canal de Pedidos Recibidos
                 </span>
@@ -489,11 +507,12 @@ export default function App() {
                     setSelectedOrderIdToPrint(orders[orders.length - 1].id);
                   }
                 }}
-                className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-355 dark:text-slate-350 dark:text-slate-300 hover:text-rose-500 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1"
+                className="px-2 md:px-3 py-1 md:py-1.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-500 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg text-[10px] md:text-xs font-black transition-all cursor-pointer flex items-center gap-1"
                 title="Imprimir comanda térmica o consolidada"
                 id="btn-print-comanda"
               >
-                <Printer className="w-3.5 h-3.5" /> Imprimir Comanda
+                <Printer className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Imprimir Comanda</span>
               </button>
 
               {/* Instant Security Lock button */}
@@ -503,20 +522,21 @@ export default function App() {
                   setViewMode('client');
                   toast.success('🔒 Sección de administración bloqueada con éxito.');
                 }}
-                className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-355 dark:text-slate-300 hover:text-red-500 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1"
+                className="px-2 md:px-3 py-1 md:py-1.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-red-500 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg text-[10px] md:text-xs font-black transition-all cursor-pointer flex items-center gap-1"
                 title="Cerrar panel de administración y bloquear acceso"
                 id="btn-lock-admin"
               >
-                <Lock className="w-3.5 h-3.5" /> Bloquear
+                <Lock className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Bloquear</span>
               </button>
 
-              <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-250 dark:border-slate-800 flex items-center justify-center font-bold text-sm text-slate-600 bg-slate-250 dark:bg-slate-900">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-100 border border-slate-250 dark:border-slate-800 flex items-center justify-center font-bold text-sm text-slate-600 dark:bg-slate-900 shrink-0">
                 👨‍🍳
               </div>
             </div>
           </nav>
 
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex overflow-hidden relative">
             {/* Sidebar Left Component */}
             <Sidebar
               currentTab={currentTab}
@@ -526,10 +546,12 @@ export default function App() {
               toggleAdminTheme={toggleAdminTheme}
               notificationPermission={notificationPermission}
               requestNotificationPermission={requestNotificationPermission}
+              isOpen={isSidebarOpen}
+              onClose={() => setIsSidebarOpen(false)}
             />
 
             {/* Selected Workspace Panel Display */}
-            <main className="flex-1 p-8 overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors">
+            <main className="flex-1 p-4 md:p-8 overflow-x-hidden overflow-y-auto flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentTab}
