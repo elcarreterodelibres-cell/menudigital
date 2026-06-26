@@ -1221,9 +1221,15 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
                 Gourmet
               </span>
             </div>
-            <span className="text-[9px] font-bold text-red-500 tracking-wider uppercase leading-none mt-0.5">
-              Lo de julia
-            </span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[9px] font-bold text-red-500 tracking-wider uppercase leading-none">
+                Lo de julia
+              </span>
+              <span className="flex items-center gap-1 text-[7px] sm:text-[8px] text-green-400 bg-green-950/40 border border-green-800/30 px-1 py-0.5 rounded font-black tracking-wider uppercase leading-none">
+                <span className="w-1 h-1 bg-green-400 rounded-full animate-pulse"></span>
+                Live Sync (onSnapshot)
+              </span>
+            </div>
           </div>
         </div>
 

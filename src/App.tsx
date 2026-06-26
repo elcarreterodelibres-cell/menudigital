@@ -12,8 +12,11 @@ import { useToast } from './components/ToastContext';
 
 import { Product, Ingredient, Order } from './types';
 import { db } from './lib/db';
-import { Smartphone, LayoutDashboard, QrCode, Lock, ShieldCheck, RotateCcw, Printer, Menu } from 'lucide-react';
+import { Smartphone, LayoutDashboard, QrCode, Lock, ShieldCheck, RotateCcw, Printer, Menu, Loader2 } from 'lucide-react';
 import { generateOrderTicketPDF, generateConsolidatedTicketsPDF } from './utils/pdfGenerator';
+import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { firestoreDB } from './lib/firebase';
+import { INITIAL_PRODUCTS, INITIAL_INGREDIENTS, INITIAL_ORDERS } from './data/initialData';
 
 export default function App() {
   const toast = useToast();
@@ -112,11 +115,108 @@ export default function App() {
     });
   };
   
-  // Realtime state simulation backed by simulated Firestore
-  const [orders, setOrders] = useState<Order[]>(() => db.getOrders());
-  const [ingredients, setIngredients] = useState<Ingredient[]>(() => db.getIngredients());
-  const [products, setProducts] = useState<Product[]>(() => db.getProducts());
-  const [config, setConfig] = useState(() => db.getBusinessConfig());
+  // Realtime state backed by Firebase Firestore
+  const [orders, setOrdersState] = useState<Order[]>([]);
+  const [ingredients, setIngredientsState] = useState<Ingredient[]>([]);
+  const [products, setProductsState] = useState<Product[]>([]);
+  const [config, setConfigState] = useState<any>(null);
+
+  const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
+  const [loadingOrders, setLoadingOrders] = useState<boolean>(true);
+  const [loadingIngredients, setLoadingIngredients] = useState<boolean>(true);
+  const [loadingConfig, setLoadingConfig] = useState<boolean>(true);
+
+  // Subscribe to Firestore in real-time
+  useEffect(() => {
+    // 1. Subscribe to Products
+    const unsubProducts = onSnapshot(collection(firestoreDB, 'products'), (snapshot) => {
+      if (snapshot.empty) {
+        // Seed initial products to Firestore
+        INITIAL_PRODUCTS.forEach((p) => {
+          setDoc(doc(firestoreDB, 'products', p.id), p);
+        });
+      } else {
+        const list: Product[] = [];
+        snapshot.forEach((doc) => {
+          list.push(doc.data() as Product);
+        });
+        setProductsState(list);
+      }
+      setLoadingProducts(false);
+    }, (error) => {
+      console.error("Error listening to products:", error);
+      setLoadingProducts(false);
+    });
+
+    // 2. Subscribe to Ingredients
+    const unsubIngredients = onSnapshot(collection(firestoreDB, 'ingredients'), (snapshot) => {
+      if (snapshot.empty) {
+        INITIAL_INGREDIENTS.forEach((ing) => {
+          setDoc(doc(firestoreDB, 'ingredients', ing.id), ing);
+        });
+      } else {
+        const list: Ingredient[] = [];
+        snapshot.forEach((doc) => {
+          list.push(doc.data() as Ingredient);
+        });
+        setIngredientsState(list);
+      }
+      setLoadingIngredients(false);
+    }, (error) => {
+      console.error("Error listening to ingredients:", error);
+      setLoadingIngredients(false);
+    });
+
+    // 3. Subscribe to Orders
+    const unsubOrders = onSnapshot(collection(firestoreDB, 'orders'), (snapshot) => {
+      if (snapshot.empty) {
+        INITIAL_ORDERS.forEach((o) => {
+          setDoc(doc(firestoreDB, 'orders', o.id), o);
+        });
+      } else {
+        const list: Order[] = [];
+        snapshot.forEach((doc) => {
+          list.push(doc.data() as Order);
+        });
+        // Sort orders by createdAt descending (most recent first)
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setOrdersState(list);
+      }
+      setLoadingOrders(false);
+    }, (error) => {
+      console.error("Error listening to orders:", error);
+      setLoadingOrders(false);
+    });
+
+    // 4. Subscribe to Business Config
+    const unsubConfig = onSnapshot(doc(firestoreDB, 'business_config', 'main'), (docSnap) => {
+      if (!docSnap.exists()) {
+        const defaultConfig = {
+          whatsappPhone: '5493772303777',
+          businessName: 'El Carretero',
+          qrUrl: window.location.origin,
+          tablesCount: 12,
+          adminPin: '1532',
+        };
+        setDoc(doc(firestoreDB, 'business_config', 'main'), defaultConfig);
+      } else {
+        setConfigState(docSnap.data());
+      }
+      setLoadingConfig(false);
+    }, (error) => {
+      console.error("Error listening to config:", error);
+      setLoadingConfig(false);
+    });
+
+    return () => {
+      unsubProducts();
+      unsubIngredients();
+      unsubOrders();
+      unsubConfig();
+    };
+  }, []);
+
+  const isLoadingData = loadingProducts || loadingOrders || loadingIngredients || loadingConfig || !config;
 
   // Printing states for Comanda ticketing system
   const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
@@ -211,79 +311,143 @@ export default function App() {
   };
 
   // Sync helpers
-  const handleSetOrders = (updater: Order[] | ((prev: Order[]) => Order[])) => {
-    setOrders((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
+  const handleSetIngredients = async (updater: Ingredient[] | ((prev: Ingredient[]) => Ingredient[])) => {
+    const prev = ingredients;
+    const next = typeof updater === 'function' ? updater(prev) : updater;
+    
+    setIngredientsState(next);
+    
+    try {
+      const prevMap = new Map(prev.map(i => [i.id, i]));
+      const nextMap = new Map(next.map(i => [i.id, i]));
       
-      // Automatic ingredient subtraction for new orders
-      const prevIds = new Set(prev.map((o) => o.id));
-      const addedOrders = next.filter((o) => !prevIds.has(o.id));
-      
-      if (addedOrders.length > 0) {
-        // Trigger browser native notification alert
-        addedOrders.forEach((order) => {
-          triggerNewOrderNotification(order);
-        });
-
-        setIngredients((currentIngs) => {
-          let updatedIngs = [...currentIngs];
-          let updated = false;
-
-          addedOrders.forEach((newOrder) => {
-            newOrder.items.forEach((item) => {
-              const product = products.find((p) => p.id === item.productId);
-              if (product && product.ingredientsRequired && product.ingredientsRequired.length > 0) {
-                product.ingredientsRequired.forEach((req) => {
-                  const qtyToSubtract = req.quantity * item.quantity;
-                  updatedIngs = updatedIngs.map((ing) => {
-                    if (ing.id === req.ingredientId) {
-                      updated = true;
-                      return {
-                        ...ing,
-                        currentStock: Math.max(0, Number((ing.currentStock - qtyToSubtract).toFixed(2))),
-                      };
-                    }
-                    return ing;
-                  });
-                });
-              }
-            });
-          });
-
-          if (updated) {
-            db.saveIngredients(updatedIngs);
-          }
-          return updatedIngs;
-        });
+      // 1. Delete
+      for (const i of prev) {
+        if (!nextMap.has(i.id)) {
+          await deleteDoc(doc(firestoreDB, 'ingredients', i.id));
+        }
       }
-
-      db.saveOrders(next);
-      return next;
-    });
+      
+      // 2. Add or update
+      for (const i of next) {
+        const prevI = prevMap.get(i.id);
+        if (!prevI || JSON.stringify(prevI) !== JSON.stringify(i)) {
+          await setDoc(doc(firestoreDB, 'ingredients', i.id), i);
+        }
+      }
+    } catch (err) {
+      console.error('Error syncing ingredients to Firestore:', err);
+    }
   };
 
-  const handleSetIngredients = (updater: Ingredient[] | ((prev: Ingredient[]) => Ingredient[])) => {
-    setIngredients((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      db.saveIngredients(next);
-      return next;
-    });
+  const handleSetProducts = async (updater: Product[] | ((prev: Product[]) => Product[])) => {
+    const prev = products;
+    const next = typeof updater === 'function' ? updater(prev) : updater;
+    
+    setProductsState(next);
+    
+    try {
+      const prevMap = new Map(prev.map(p => [p.id, p]));
+      const nextMap = new Map(next.map(p => [p.id, p]));
+      
+      // 1. Delete
+      for (const p of prev) {
+        if (!nextMap.has(p.id)) {
+          await deleteDoc(doc(firestoreDB, 'products', p.id));
+        }
+      }
+      
+      // 2. Add or update
+      for (const p of next) {
+        const prevP = prevMap.get(p.id);
+        if (!prevP || JSON.stringify(prevP) !== JSON.stringify(p)) {
+          await setDoc(doc(firestoreDB, 'products', p.id), p);
+        }
+      }
+    } catch (err) {
+      console.error('Error syncing products to Firestore:', err);
+      toast.error('Error al sincronizar productos con el servidor.');
+    }
   };
 
-  const handleSetProducts = (updater: Product[] | ((prev: Product[]) => Product[])) => {
-    setProducts((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      db.saveProducts(next);
-      return next;
-    });
+  const handleSetOrders = async (updater: Order[] | ((prev: Order[]) => Order[])) => {
+    const prev = orders;
+    const next = typeof updater === 'function' ? updater(prev) : updater;
+    
+    // Automatic ingredient subtraction for new orders
+    const prevIds = new Set(prev.map((o) => o.id));
+    const addedOrders = next.filter((o) => !prevIds.has(o.id));
+    
+    if (addedOrders.length > 0) {
+      addedOrders.forEach((order) => {
+        triggerNewOrderNotification(order);
+      });
+
+      let updatedIngs = [...ingredients];
+      let updated = false;
+
+      addedOrders.forEach((newOrder) => {
+        newOrder.items.forEach((item) => {
+          const product = products.find((p) => p.id === item.productId);
+          if (product && product.ingredientsRequired && product.ingredientsRequired.length > 0) {
+            product.ingredientsRequired.forEach((req) => {
+              const qtyToSubtract = req.quantity * item.quantity;
+              updatedIngs = updatedIngs.map((ing) => {
+                if (ing.id === req.ingredientId) {
+                  updated = true;
+                  return {
+                    ...ing,
+                    currentStock: Math.max(0, Number((ing.currentStock - qtyToSubtract).toFixed(2))),
+                  };
+                }
+                return ing;
+              });
+            });
+          }
+        });
+      });
+
+      if (updated) {
+        handleSetIngredients(updatedIngs);
+      }
+    }
+
+    setOrdersState(next);
+    
+    try {
+      const prevMap = new Map(prev.map(o => [o.id, o]));
+      const nextMap = new Map(next.map(o => [o.id, o]));
+      
+      // 1. Delete
+      for (const o of prev) {
+        if (!nextMap.has(o.id)) {
+          await deleteDoc(doc(firestoreDB, 'orders', o.id));
+        }
+      }
+      
+      // 2. Add or update
+      for (const o of next) {
+        const prevO = prevMap.get(o.id);
+        if (!prevO || JSON.stringify(prevO) !== JSON.stringify(o)) {
+          await setDoc(doc(firestoreDB, 'orders', o.id), o);
+        }
+      }
+    } catch (err) {
+      console.error('Error syncing orders to Firestore:', err);
+    }
   };
 
-  const handleSetConfig = (updater: any) => {
-    setConfig((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      db.saveBusinessConfig(next);
-      return next;
-    });
+  const handleSetConfig = async (updater: any) => {
+    const prev = config;
+    const next = typeof updater === 'function' ? updater(prev) : updater;
+    
+    setConfigState(next);
+    
+    try {
+      await setDoc(doc(firestoreDB, 'business_config', 'main'), next);
+    } catch (err) {
+      console.error('Error syncing config to Firestore:', err);
+    }
   };
 
   // Live total pending orders
@@ -295,6 +459,22 @@ export default function App() {
     // Keep client on the client environment (do not redirect)
     toast.success('🎉 ¡Pedido recibido con éxito en la cocina!');
   };
+
+  if (isLoadingData) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#0d0d0f] text-white font-sans p-6">
+        <div className="flex flex-col items-center max-w-md text-center">
+          <Loader2 className="w-10 h-10 text-amber-500 animate-spin mb-4" />
+          <h2 className="text-lg font-display font-extrabold tracking-wider text-amber-400 mb-1 uppercase">
+            El Carretero
+          </h2>
+          <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+            Estableciendo conexión en tiempo real con Firebase...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-50 text-slate-900 font-sans overflow-hidden antialiased">
