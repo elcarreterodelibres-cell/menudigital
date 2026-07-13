@@ -81,15 +81,7 @@ export default function App() {
     return 'es';
   });
 
-  // Automatically cycle through intro stages: 1.5s per image
-  useEffect(() => {
-    if (introStage < 5) {
-      const timer = setTimeout(() => {
-        setIntroStage((prev) => prev + 1);
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [introStage]);
+
 
   const [viewMode, setViewMode] = useState<'client' | 'admin'>(() => {
     if (typeof window !== 'undefined') {
@@ -217,6 +209,16 @@ export default function App() {
   }, []);
 
   const isLoadingData = loadingProducts || loadingOrders || loadingIngredients || loadingConfig || !config;
+
+  // Automatically cycle through intro stages: 2.0s per image, starting only after all data has finished loading from Firebase
+  useEffect(() => {
+    if (!isLoadingData && introStage < 5) {
+      const timer = setTimeout(() => {
+        setIntroStage((prev) => prev + 1);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [introStage, isLoadingData]);
 
   // Printing states for Comanda ticketing system
   const [showPrintModal, setShowPrintModal] = useState<boolean>(false);

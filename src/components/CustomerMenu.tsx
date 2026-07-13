@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Product, CartItem, Order, AppUser } from '../types';
 import { 
   ShoppingBag, 
@@ -40,6 +41,8 @@ interface CustomerMenuProps {
 // Map high quality Unsplash images specifically for product illustration
 const getProductImage = (productId: string, productName: string, category: string) => {
   const normName = productName.toLowerCase();
+  const normCat = category.toLowerCase();
+
   if (productId === 'prod-1' || normName.includes('doble cheddar')) {
     return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&h=600&q=80';
   }
@@ -62,15 +65,50 @@ const getProductImage = (productId: string, productName: string, category: strin
     return 'https://images.unsplash.com/photo-1608885898957-a599fb1b4600?auto=format&fit=crop&w=600&h=600&q=80';
   }
 
+  // Explicit keyword matches for Argentine restaurant products
+  if (normName.includes('chuleta') || normName.includes('novillo') || normName.includes('bife') || normName.includes('entrecot') || normName.includes('asado') || normName.includes('carne') || normName.includes('costeleta') || normName.includes('bife de chorizo') || normName.includes('tapa de asado') || normName.includes('vacío') || normName.includes('vacio')) {
+    return 'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=600&h=600&q=80';
+  }
+  if (normName.includes('milanesa')) {
+    return 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=600&h=600&q=80';
+  }
+  if (normName.includes('empanada')) {
+    return 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=600&h=600&q=80';
+  }
+  if (normName.includes('pizza') || normName.includes('muzzarella') || normName.includes('muzarella')) {
+    return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&h=600&q=80';
+  }
+  if (normName.includes('berenjena')) {
+    return 'https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=600&h=600&q=80';
+  }
+  if (normName.includes('lengua') || normName.includes('vinagreta') || normName.includes('poroto')) {
+    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&h=600&q=80';
+  }
+  if (normName.includes('fideo') || normName.includes('pasta') || normName.includes('tallarine')) {
+    return 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&h=600&q=80';
+  }
+  if (normName.includes('puré') || normName.includes('pure')) {
+    return 'https://images.unsplash.com/photo-1534939561126-855b8675edd7?auto=format&fit=crop&w=600&h=600&q=80';
+  }
+  if (normName.includes('tortilla')) {
+    return 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600&h=600&q=80';
+  }
+
   // Fallbacks by category
-  if (category.toLowerCase().includes('hamburguesa')) {
+  if (normCat.includes('hamburguesa') || normCat.includes('hambúrguer')) {
     return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&h=600&q=80';
   }
-  if (category.toLowerCase().includes('acompañamiento') || category.toLowerCase().includes('papas')) {
+  if (normCat.includes('plato') || normCat.includes('prato') || normCat.includes('principal') || normCat.includes('minuta')) {
+    return 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&h=600&q=80';
+  }
+  if (normCat.includes('guarnicion') || normCat.includes('guarnición') || normCat.includes('acompañamiento') || normCat.includes('papas')) {
     return 'https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&w=600&h=600&q=80';
   }
-  if (category.toLowerCase().includes('bebida')) {
+  if (normCat.includes('bebida')) {
     return 'https://images.unsplash.com/photo-1497534446932-c925b458314e?auto=format&fit=crop&w=600&h=600&q=80';
+  }
+  if (normCat.includes('entrada')) {
+    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&h=600&q=80';
   }
 
   return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&h=600&q=80';
@@ -84,6 +122,15 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [isConfirmingClear, setIsConfirmingClear] = useState<boolean>(false);
+
+  // Reset clear cart confirmation state when cart drawer closes or cart becomes empty
+  useEffect(() => {
+    if (!isCartOpen || cart.length === 0) {
+      setIsConfirmingClear(false);
+    }
+  }, [isCartOpen, cart.length]);
 
   // Language state (ES / PT)
   const [language, setLanguage] = useState<'es' | 'pt'>(() => {
@@ -640,6 +687,7 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
   // Side Dish Selection Modal State (for Category Platos)
   const [sideDishProduct, setSideDishProduct] = useState<Product | null>(null);
   const [selectedSideDishesMap, setSelectedSideDishesMap] = useState<{[key: string]: boolean}>({});
+  const [pendingSideDishes, setPendingSideDishes] = useState<{ id: string; name: string; price: number; cost: number }[] | null>(null);
 
   // Profile avatar details state
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
@@ -718,6 +766,30 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
     const x = e.pageX - categoriesRef.current.offsetLeft;
     const walk = (x - startX) * 1.5; // multiplier for scrolling speed
     categoriesRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const xc = rect.width / 2;
+    const yc = rect.height / 2;
+    
+    // Very smooth and subtle 3D tilt: max 4 degrees
+    const rotateY = ((x - xc) / xc) * 4;
+    const rotateX = -((y - yc) / yc) * 4;
+    
+    el.style.setProperty('--tilt-x', `${rotateX}deg`);
+    el.style.setProperty('--tilt-y', `${rotateY}deg`);
+    el.style.setProperty('--tilt-scale', '1.01'); // almost imperceptible zoom
+  };
+
+  const handleCardMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    el.style.setProperty('--tilt-x', '0deg');
+    el.style.setProperty('--tilt-y', '0deg');
+    el.style.setProperty('--tilt-scale', '1');
   };
 
   // Close profile dropdown when clicking outside
@@ -875,23 +947,30 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
     });
   };
 
-  const addPlateToCart = (product: Product, sideDishes: { id: string; name: string; price: number; cost: number }[]) => {
+  const addPlateToCart = (
+    product: Product, 
+    sideDishes: { id: string; name: string; price: number; cost: number }[],
+    selectedDressings?: string[]
+  ) => {
     setCart((prev) => {
       const sideDishesKey = JSON.stringify(sideDishes.map(d => d.id).sort() || []);
+      const dressingsKey = JSON.stringify(selectedDressings || []);
       const existing = prev.find(
         (item) =>
           item.product.id === product.id &&
-          JSON.stringify((item.selectedSideDishes || []).map(d => d.id).sort()) === sideDishesKey
+          JSON.stringify((item.selectedSideDishes || []).map(d => d.id).sort()) === sideDishesKey &&
+          JSON.stringify(item.selectedDressings || []) === dressingsKey
       );
       if (existing) {
         return prev.map((item) =>
           item.product.id === product.id &&
-          JSON.stringify((item.selectedSideDishes || []).map(d => d.id).sort()) === sideDishesKey
+          JSON.stringify((item.selectedSideDishes || []).map(d => d.id).sort()) === sideDishesKey &&
+          JSON.stringify(item.selectedDressings || []) === dressingsKey
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      return [...prev, { product, quantity: 1, selectedSideDishes: sideDishes }];
+      return [...prev, { product, quantity: 1, selectedSideDishes: sideDishes, selectedDressings }];
     });
   };
 
@@ -923,17 +1002,23 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
   };
 
   const handleAddToCartClick = (p: Product) => {
-    if (p.category === 'Hamburguesas' || p.category === 'Minutas') {
+    const orig = originalProducts.find(op => op.id === p.id) || p;
+    const catLower = (orig.category || '').toLowerCase();
+    
+    if (catLower === 'hamburguesas' || catLower === 'minutas') {
       setDressingProduct(p);
       setDressingOptions({
         'Mayonesa': true,
         'Ketchup': true,
         'Mostaza': true
       });
-    } else if (p.category === 'Platos') {
+    } else if (catLower === 'platos') {
       setSideDishProduct(p);
       // Auto-select the first available side dish!
-      const availableGuarniciones = products.filter(g => g.category === 'Guarniciones');
+      const availableGuarniciones = products.filter(g => {
+        const gOrig = originalProducts.find(op => op.id === g.id) || g;
+        return (gOrig.category || '').toLowerCase() === 'guarniciones';
+      });
       if (availableGuarniciones.length > 0) {
         setSelectedSideDishesMap({
           [availableGuarniciones[0].id]: true
@@ -943,6 +1028,7 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       }
     } else {
       addToCart(p, []);
+      toast.success(`${p.name} ${language === 'pt' ? 'adicionado' : 'agregado'}!`);
     }
   };
 
@@ -951,8 +1037,15 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
     const selected = Object.entries(dressingOptions)
       .filter(([_, enabled]) => enabled)
       .map(([name]) => name);
-    addToCart(dressingProduct, selected);
+    
+    if (pendingSideDishes) {
+      addPlateToCart(dressingProduct, pendingSideDishes, selected);
+      setPendingSideDishes(null);
+    } else {
+      addToCart(dressingProduct, selected);
+    }
     setDressingProduct(null);
+    toast.success(`${dressingProduct.name} ${language === 'pt' ? 'adicionado' : 'agregado'}!`);
   };
 
   const confirmAddWithSideDishes = () => {
@@ -966,8 +1059,8 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       .map(p => ({
         id: p.id,
         name: p.name,
-        price: p.price,
-        cost: p.cost
+        price: p.price || 0,
+        cost: p.cost || 0
       }));
       
     if (selectedList.length === 0) {
@@ -975,8 +1068,24 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       return;
     }
     
-    addPlateToCart(sideDishProduct, selectedList);
-    setSideDishProduct(null);
+    const orig = originalProducts.find(op => op.id === sideDishProduct.id) || sideDishProduct;
+    const catLower = (orig.category || '').toLowerCase();
+    
+    if (catLower === 'platos') {
+      addPlateToCart(sideDishProduct, selectedList, []);
+      setSideDishProduct(null);
+      toast.success(`${sideDishProduct.name} ${language === 'pt' ? 'adicionado' : 'agregado'}!`);
+    } else {
+      // Chain with dressing selection if it's not a standard Plato (just in case)
+      setPendingSideDishes(selectedList);
+      setDressingProduct(sideDishProduct);
+      setDressingOptions({
+        'Mayonesa': true,
+        'Ketchup': true,
+        'Mostaza': true
+      });
+      setSideDishProduct(null);
+    }
   };
 
   const handleSendOrder = (e: React.FormEvent) => {
@@ -1260,6 +1369,21 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
             </button>
           </div>
 
+          {/* Shopping Cart Header Icon Button */}
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="relative w-9 h-9 rounded-full bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer"
+            title={language === 'pt' ? 'Ver Sacola' : 'Ver Carrito'}
+            id="header-cart-btn"
+          >
+            <ShoppingBag className="w-4.5 h-4.5" />
+            {cart.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-[#C5A059] text-[#121212] text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-md animate-bounce">
+                {cart.reduce((acc, curr) => acc + curr.quantity, 0)}
+              </span>
+            )}
+          </button>
+
           {/* Dynamic User Profile Status Dropdown (ONLY visible/expanded upon click) */}
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
@@ -1391,11 +1515,18 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
               return (
                 <div 
                   key={p.id}
-                  className="bg-black/40 backdrop-blur-sm rounded-xl border border-white/10 hover:border-[#C5A059]/40 transition-all duration-300 shadow-lg group overflow-hidden flex flex-col h-full hover:shadow-2xl hover:shadow-black/65"
+                  className="bg-black/40 backdrop-blur-sm rounded-xl border border-white/10 hover:border-[#C5A059]/40 shadow-lg group overflow-hidden flex flex-col h-full hover:shadow-2xl hover:shadow-black/65"
                   id={`customer-item-${p.id}`}
+                  onMouseMove={handleCardMouseMove}
+                  onMouseLeave={handleCardMouseLeave}
+                  style={{
+                    transform: 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(var(--tilt-scale, 1))',
+                    transformStyle: 'preserve-3d',
+                    transition: 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.3s, box-shadow 0.3s',
+                  }}
                 >
                   {/* Image Container */}
-                  <div className="w-full h-24 sm:h-36 md:h-48 lg:h-52 relative overflow-hidden shrink-0 bg-zinc-900/60 border-b border-white/5">
+                  <div className="w-full h-24 sm:h-36 md:h-48 lg:h-52 relative overflow-hidden shrink-0 bg-zinc-900/60 border-b border-white/5" style={{ transform: 'translateZ(20px)' }}>
                     <img 
                       src={prodImg} 
                       alt={p.name}
@@ -1422,7 +1553,7 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
                   </div>
 
                   {/* Content Container */}
-                  <div className="flex-1 p-3 sm:p-5 flex flex-col justify-between">
+                  <div className="flex-1 p-3 sm:p-5 flex flex-col justify-between" style={{ transform: 'translateZ(10px)' }}>
                     <div>
                       {/* Mobile small category text */}
                       <span className="inline-block md:hidden text-[8px] font-black text-[#C5A059] uppercase tracking-widest">
@@ -1463,10 +1594,12 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
                         ) : (
                           <button
                             onClick={() => handleAddToCartClick(p)}
-                            className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] rounded-xl text-[10px] sm:text-xs font-bold tracking-wide flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer"
+                            className="group/btn px-2.5 py-1.5 sm:px-4 sm:py-2 bg-[#C5A059] text-[#121212] rounded-xl text-[10px] sm:text-xs font-bold tracking-wide flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer"
                           >
-                            <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#121212]" />
-                            <span>{t('Agregar')}</span>
+                            <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#121212] transition-transform duration-500 ease-out group-hover/btn:rotate-180" />
+                            <span className="transition-transform duration-300 ease-out group-hover/btn:translate-x-[2px] inline-block">
+                              {t('Agregar')}
+                            </span>
                           </button>
                         )}
                       </div>
@@ -1498,32 +1631,267 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       </footer>
 
       {/* 4. PERSISTENT FLOATING BASKET PANEL */}
-      {cart.length > 0 && (
+      {cart.length > 0 && typeof document !== 'undefined' && createPortal(
         <div className="fixed bottom-0 inset-x-0 bg-[#0d0d0f]/95 backdrop-blur-md p-4 md:py-5 border-t border-zinc-850 flex items-center justify-center z-40 shadow-2xl">
           <div className="max-w-3xl w-full flex items-center justify-between gap-6 px-2 md:px-4">
-            <div>
-              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                <ShoppingBag className="w-3.5 h-3.5 text-[#C5A059]" />
-                {t('Mi Canasta')}
-              </p>
-              <p className="text-lg md:text-xl font-display font-black text-[#F5F5F5] mt-0.5">
-                {formatCurrency(cartTotal)}
-              </p>
+            <div 
+              onClick={() => setIsCartOpen(true)}
+              className="flex items-center gap-3 cursor-pointer group hover:opacity-90 transition-all select-none"
+              title={language === 'pt' ? 'Ver Sacola Completa' : 'Ver Canasta Completa'}
+            >
+              <div className="w-9 h-9 rounded-xl bg-[#C5A059]/10 border border-[#C5A059]/20 flex items-center justify-center text-[#C5A059] group-hover:scale-105 transition-transform duration-300">
+                <ShoppingBag className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1">
+                  {t('Mi Canasta')}
+                  <span className="text-[9px] text-[#C5A059] font-bold font-mono">
+                    ({cart.reduce((acc, curr) => acc + curr.quantity, 0)})
+                  </span>
+                </p>
+                <p className="text-lg md:text-xl font-display font-black text-[#F5F5F5] mt-0.5 flex items-center gap-1.5">
+                  {formatCurrency(cartTotal)}
+                  <span className="text-[10px] text-zinc-400 font-semibold underline decoration-[#C5A059]/40 group-hover:text-white transition-colors">
+                    {language === 'pt' ? 'ver detalhe' : 'ver detalle'}
+                  </span>
+                </p>
+              </div>
             </div>
 
-            <button
-              onClick={() => setIsCheckoutOpen(true)}
-              className="px-6 py-3 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] rounded-xl text-xs font-extrabold tracking-wide flex items-center gap-2 cursor-pointer shadow-lg shadow-[#C5A059]/25 transition-all hover:shadow-xl hover:shadow-black/35"
-            >
-              <span>{t('Generar Pedido')}</span>
-              <ArrowRight className="w-4 h-4 animate-pulse text-[#121212]" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className="hidden xs:flex px-4 py-3 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 rounded-xl text-xs font-bold border border-zinc-800 transition-colors cursor-pointer items-center gap-1.5"
+              >
+                <span>{language === 'pt' ? 'Ver Sacola' : 'Ver Canasta'}</span>
+              </button>
+              <button
+                onClick={() => setIsCheckoutOpen(true)}
+                className="px-6 py-3 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] rounded-xl text-xs font-extrabold tracking-wide flex items-center gap-2 cursor-pointer shadow-lg shadow-[#C5A059]/25 transition-all hover:shadow-xl hover:shadow-black/35"
+              >
+                <span>{t('Generar Pedido')}</span>
+                <ArrowRight className="w-4 h-4 animate-pulse text-[#121212]" />
+              </button>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ==================== 4.1 SLIDE-OVER SHOPPING CART DRAWER ==================== */}
+      {isCartOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-50 overflow-hidden" id="cart-drawer-overlay">
+          {/* Backdrop with transition */}
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-xs transition-opacity duration-300"
+            onClick={() => setIsCartOpen(false)}
+          />
+
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            {/* Drawer panel with slide-in transition */}
+            <div className="w-screen max-w-md bg-[#16161a] border-l border-zinc-800 shadow-2xl flex flex-col h-full text-zinc-100 animate-in slide-in-from-right duration-300">
+              
+              {/* Drawer Header */}
+              <div className="p-5 border-b border-zinc-850 flex items-center justify-between bg-[#121215]">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#C5A059]/10 flex items-center justify-center text-[#C5A059]">
+                    <ShoppingBag className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-black text-sm uppercase tracking-wider text-white">
+                      {t('Mi Canasta')}
+                    </h3>
+                    <p className="text-[10px] text-zinc-500 font-bold">
+                      {cart.reduce((acc, curr) => acc + curr.quantity, 0)} {language === 'pt' ? 'ítens selecionados' : 'ítems seleccionados'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {cart.length > 0 && (
+                    <button
+                      onClick={() => {
+                        if (isConfirmingClear) {
+                          setCart([]);
+                          setIsConfirmingClear(false);
+                          toast.success(language === 'pt' ? 'Sacola esvaziada.' : 'Canasta vaciada.');
+                        } else {
+                          setIsConfirmingClear(true);
+                        }
+                      }}
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer border ${
+                        isConfirmingClear 
+                          ? 'text-white bg-red-600 border-red-500 animate-pulse' 
+                          : 'text-red-400 hover:text-red-300 hover:bg-red-950/20 border-red-900/10'
+                      }`}
+                    >
+                      {isConfirmingClear 
+                        ? (language === 'pt' ? '¿Confirmar?' : '¿Confirmar?') 
+                        : (language === 'pt' ? 'Esvaziar' : 'Vaciar')}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsCartOpen(false)}
+                    className="text-zinc-400 hover:text-white bg-zinc-850 hover:bg-zinc-800 p-1.5 rounded-full transition-all cursor-pointer text-xs font-black w-7 h-7 flex items-center justify-center"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Drawer Body */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-thin">
+                {cart.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                    <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 mb-4 animate-bounce">
+                      <ShoppingBag className="w-8 h-8" />
+                    </div>
+                    <h4 className="text-sm font-bold text-zinc-300">
+                      {language === 'pt' ? 'Sua sacola está vazia!' : '¡Tu canasta está vacía!'}
+                    </h4>
+                    <p className="text-xs text-zinc-500 max-w-xs mt-1.5 leading-relaxed font-semibold">
+                      {language === 'pt' ? 'Adicione delícias do our cardápio para fazer o seu pedido.' : 'Sumá algunas de nuestras delicias desde el menú para registrar tu pedido.'}
+                    </p>
+                    <button
+                      onClick={() => setIsCartOpen(false)}
+                      className="mt-5 px-4 py-2 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                    >
+                      {language === 'pt' ? 'Explorar Cardápio' : 'Explorar el Menú'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-zinc-850/65 space-y-2">
+                    {cart.map((item, index) => {
+                      const itemPrice = getCartItemUnitPrice(item);
+                      const customImg = item.product.imageUrl || getProductImage(item.product.id, item.product.name, item.product.category);
+                      
+                      return (
+                        <div key={index} className="py-4 first:pt-0 flex items-start gap-3 text-xs">
+                          {/* Small thumbnail */}
+                          <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-zinc-900/60 border border-zinc-800">
+                            <img src={customImg} alt={item.product.name} className="w-full h-full object-cover" />
+                          </div>
+
+                          {/* Details */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-extrabold text-white truncate font-sans text-sm">
+                              {item.product.name}
+                            </h4>
+                            
+                            {/* Selected condiments or side dishes */}
+                            {item.selectedDressings && item.selectedDressings.length > 0 && (
+                              <p className="text-[10px] text-[#C5A059] font-medium mt-0.5">
+                                {t('Aderezos:')} {item.selectedDressings.map(d => t(d)).join(', ')}
+                              </p>
+                            )}
+                            {item.selectedSideDishes && item.selectedSideDishes.length > 0 && (
+                              <p className="text-[10px] text-[#C5A059] font-semibold mt-0.5">
+                                {t('Guarnición:')} {item.selectedSideDishes.map(d => d.name).join(', ')}
+                              </p>
+                            )}
+
+                            {/* Subtotal calculated inside */}
+                            <p className="text-[#C5A059] font-bold mt-1 text-xs font-mono">
+                              {formatCurrency(itemPrice * item.quantity)}
+                            </p>
+                          </div>
+
+                          {/* Actions: minus/plus and remove */}
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5">
+                              <button
+                                onClick={() => {
+                                  // Decrement quantity inside drawer
+                                  setCart((prev) => {
+                                    const next = [...prev];
+                                    const target = next[index];
+                                    if (target.quantity > 1) {
+                                      next[index] = { ...target, quantity: target.quantity - 1 };
+                                      return next;
+                                    } else {
+                                      return prev.filter((_, i) => i !== index);
+                                    }
+                                  });
+                                }}
+                                className="w-5.5 h-5.5 rounded flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                              >
+                                <Minus className="w-2.5 h-2.5" />
+                              </button>
+                              <span className="px-1.5 text-[11px] font-bold text-white min-w-[12px] text-center">{item.quantity}</span>
+                              <button
+                                onClick={() => {
+                                  setCart((prev) => {
+                                    const next = [...prev];
+                                    next[index] = { ...next[index], quantity: next[index].quantity + 1 };
+                                    return next;
+                                  });
+                                }}
+                                className="w-5.5 h-5.5 rounded flex items-center justify-center text-[#C5A059] hover:bg-[#C5A059]/20 transition-colors cursor-pointer"
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                setCart((prev) => prev.filter((_, i) => i !== index));
+                                toast.success(language === 'pt' ? 'Item removido da sacola.' : 'Producto eliminado de la canasta.');
+                              }}
+                              className="text-zinc-500 hover:text-red-400 p-1 rounded-md transition-colors cursor-pointer"
+                              title={language === 'pt' ? 'Excluir item' : 'Eliminar ítem'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Drawer Footer */}
+              {cart.length > 0 && (
+                <div className="p-5 border-t border-zinc-850 bg-[#121215] space-y-4">
+                  <div className="space-y-1.5 font-sans">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-zinc-400">{language === 'pt' ? 'Subtotal da Sacola:' : 'Subtotal de Canasta:'}</span>
+                      <span className="text-zinc-200 font-mono">{formatCurrency(cartTotal)}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-sm pt-2 border-t border-zinc-850/60">
+                      <span className="text-zinc-100">{t('Total a Pagar:')}</span>
+                      <span className="text-[#C5A059] font-bold font-mono">{formatCurrency(cartTotal)}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      onClick={() => setIsCartOpen(false)}
+                      className="py-2.5 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 rounded-xl text-xs font-bold border border-zinc-800 transition-colors cursor-pointer text-center"
+                    >
+                      {language === 'pt' ? 'Continuar' : 'Seguir Explorando'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsCartOpen(false);
+                        setIsCheckoutOpen(true);
+                      }}
+                      className="py-2.5 bg-[#C5A059] hover:bg-[#b08d4b] text-[#121212] rounded-xl text-xs font-extrabold tracking-wide flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#C5A059]/10 hover:shadow-xl transition-all"
+                    >
+                      <span>{language === 'pt' ? 'Fazer Pedido' : 'Generar Pedido'}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* 5. REDESIGNED CHECKOUT MODAL FRAME */}
-      {isCheckoutOpen && (
+      {isCheckoutOpen && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-xl w-full max-w-md p-5 shadow-2xl max-h-[90%] overflow-auto text-zinc-150 scrollbar-thin">
             <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4">
@@ -1750,11 +2118,12 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
               </button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ==================== FIREBASE AUTH MODAL ==================== */}
-      {authModalOpen && (
+      {authModalOpen && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-[#141417] border border-zinc-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl animate-scale-up text-zinc-150">
             <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4">
@@ -1892,7 +2261,7 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       )}
 
       {/* ==================== DRESSING SELECTION MODAL ==================== */}
-      {dressingProduct && (
+      {dressingProduct && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-xl w-full max-w-sm p-5 shadow-2xl animate-scale-up text-zinc-150">
             <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4 font-sans">
@@ -1901,7 +2270,10 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
                 {t('Personalizar')} {dressingProduct.name}
               </h3>
               <button
-                onClick={() => setDressingProduct(null)}
+                onClick={() => {
+                  setDressingProduct(null);
+                  setPendingSideDishes(null);
+                }}
                 className="text-zinc-400 hover:text-white font-bold text-xs bg-zinc-850 px-3 py-1 rounded-full cursor-pointer"
               >
                 {t('Cancelar')}
@@ -1953,11 +2325,12 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
               <Plus className="w-4 h-4 text-[#121212]" />
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ==================== PLATE SIDE-DISH SELECTION MODAL ==================== */}
-      {sideDishProduct && (
+      {sideDishProduct && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-xl w-full max-w-sm p-5 shadow-2xl animate-scale-up text-zinc-150">
             <div className="flex justify-between items-center pb-3 border-b border-zinc-800 mb-4 font-sans">
@@ -1978,12 +2351,18 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
             </p>
 
             <div className="max-h-60 overflow-y-auto space-y-2.5 mb-5 pr-1 select-none font-sans">
-              {products.filter(g => g.category === t('Guarniciones')).map((guarnicion) => {
+              {products.filter(g => {
+                const gOrig = originalProducts.find(op => op.id === g.id) || g;
+                return (gOrig.category || '').toLowerCase() === 'guarniciones';
+              }).map((guarnicion) => {
                 const isSelected = !!selectedSideDishesMap[guarnicion.id];
                 
                 // Determine price label dynamically
-                const selectedGuarniciones = products.filter(g => g.category === t('Guarniciones') && selectedSideDishesMap[g.id]);
-                const sortedSelected = [...selectedGuarniciones].sort((a, b) => b.price - a.price);
+                const selectedGuarniciones = products.filter(g => {
+                  const gOrig = originalProducts.find(op => op.id === g.id) || g;
+                  return (gOrig.category || '').toLowerCase() === 'guarniciones' && selectedSideDishesMap[g.id];
+                });
+                const sortedSelected = [...selectedGuarniciones].sort((a, b) => (b.price || 0) - (a.price || 0));
                 const freeGuarnicionId = sortedSelected.length > 0 ? sortedSelected[0].id : null;
                 
                 let priceLabel = '';
@@ -1991,10 +2370,10 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
                   if (guarnicion.id === freeGuarnicionId) {
                     priceLabel = t('🔥 Incluida (Gratis)');
                   } else {
-                    priceLabel = `+ ${formatCurrency(guarnicion.price)}`;
+                    priceLabel = `+ ${formatCurrency(guarnicion.price || 0)}`;
                   }
                 } else {
-                  priceLabel = formatCurrency(guarnicion.price);
+                  priceLabel = formatCurrency(guarnicion.price || 0);
                 }
 
                 return (
@@ -2056,10 +2435,13 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
               <span className="text-zinc-400 font-bold font-sans">{t('Precio Total del Plato:')}</span>
               <span className="text-white font-mono font-black text-sm">
                 {(() => {
-                  const selectedGuarniciones = products.filter(g => g.category === t('Guarniciones') && selectedSideDishesMap[g.id]);
-                  const sortedSelected = [...selectedGuarniciones].sort((a, b) => b.price - a.price);
-                  const additionalCost = sortedSelected.slice(1).reduce((sum, g) => sum + g.price, 0);
-                  return formatCurrency(sideDishProduct.price + additionalCost);
+                  const selectedGuarniciones = products.filter(g => {
+                    const gOrig = originalProducts.find(op => op.id === g.id) || g;
+                    return (gOrig.category || '').toLowerCase() === 'guarniciones' && selectedSideDishesMap[g.id];
+                  });
+                  const sortedSelected = [...selectedGuarniciones].sort((a, b) => (b.price || 0) - (a.price || 0));
+                  const additionalCost = sortedSelected.slice(1).reduce((sum, g) => sum + (g.price || 0), 0);
+                  return formatCurrency((sideDishProduct.price || 0) + additionalCost);
                 })()}
               </span>
             </div>
@@ -2072,7 +2454,8 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
               <Plus className="w-4 h-4 text-[#121212]" />
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
