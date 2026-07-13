@@ -1,6 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Product, CartItem, Order, AppUser } from '../types';
+import berenjenasImg from '../assets/images/berenjenas_escabeche_1783966847016.jpg';
+import porotosImg from '../assets/images/porotos_blancos_1783967059995.jpg';
+import cocaVidrioImg from '../assets/images/coca_cola_vidrio_1l_1783967200131.jpg';
+import lenguaImg from '../assets/images/lengua_vinagreta_1783967287411.jpg';
+import fideosImg from '../assets/images/porcion_de_fideos_1783968844977.jpg';
+import fritasImg from '../assets/images/porcion_fritas_1783969027980.jpg';
+import pureImg from '../assets/images/porcion_pure_papas_1783969348192.jpg';
+import tortillaImg from '../assets/images/tortilla_de_papas_1783969644883.jpg';
+import hamburguesaCompletaImg from '../assets/images/hamburguesa_completa_real_1783970051436.jpg';
+import ensaladaCompletaImg from '../assets/images/ensalada_completa_1783970223631.jpg';
+import ensaladaMixtaImg from '../assets/images/ensalada_mixta_image_1783970409176.jpg';
+import milanesaCompletoImg from '../assets/images/milanesa_completo_1783970630186.jpg';
 import { 
   ShoppingBag, 
   Plus, 
@@ -43,6 +55,18 @@ const getProductImage = (productId: string, productName: string, category: strin
   const normName = productName.toLowerCase();
   const normCat = category.toLowerCase();
 
+  if (productId === 'prod-guar-ensalada-comp' || normName.includes('ensalada completa')) {
+    return ensaladaCompletaImg;
+  }
+  if (productId === 'prod-guar-ensalada-mixta' || normName.includes('ensalada mixta') || (normName.includes('mixta') && normName.includes('ensalada'))) {
+    return ensaladaMixtaImg;
+  }
+  if (productId === 'prod-m2' || normName.includes('milanesa completo') || (normName.includes('milanesa') && normName.includes('completo'))) {
+    return milanesaCompletoImg;
+  }
+  if (normName.includes('hamburguesa completa') || (normName.includes('completa') && !normName.includes('pizza') && !normName.includes('ensalada') && !normName.includes('milanesa'))) {
+    return hamburguesaCompletaImg;
+  }
   if (productId === 'prod-1' || normName.includes('doble cheddar')) {
     return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&h=600&q=80';
   }
@@ -55,8 +79,17 @@ const getProductImage = (productId: string, productName: string, category: strin
   if (productId === 'prod-4' || normName.includes('cheddar & bacon') || normName.includes('bacon')) {
     return 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&h=600&q=80';
   }
-  if (productId === 'prod-5' || normName.includes('papas fritas') || normName.includes('papas')) {
-    return 'https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&w=600&h=600&q=80';
+  if (normName.includes('tortilla')) {
+    return tortillaImg;
+  }
+  if (normName.includes('puré') || normName.includes('pure')) {
+    return pureImg;
+  }
+  if (productId === 'prod-5' || normName.includes('papas fritas') || normName.includes('papas') || normName.includes('fritas')) {
+    return fritasImg;
+  }
+  if (normName.includes('vidrio') && (normName.includes('coca') || normName.includes('cola'))) {
+    return cocaVidrioImg;
   }
   if (productId === 'prod-6' || normName.includes('cola') || normName.includes('coca')) {
     return 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=600&h=600&q=80';
@@ -79,19 +112,22 @@ const getProductImage = (productId: string, productName: string, category: strin
     return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&h=600&q=80';
   }
   if (normName.includes('berenjena')) {
-    return 'https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=600&h=600&q=80';
+    return berenjenasImg;
   }
-  if (normName.includes('lengua') || normName.includes('vinagreta') || normName.includes('poroto')) {
-    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&h=600&q=80';
+  if (normName.includes('poroto')) {
+    return porotosImg;
+  }
+  if (normName.includes('lengua') || normName.includes('vinagreta')) {
+    return lenguaImg;
   }
   if (normName.includes('fideo') || normName.includes('pasta') || normName.includes('tallarine')) {
-    return 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&h=600&q=80';
+    return fideosImg;
   }
   if (normName.includes('puré') || normName.includes('pure')) {
-    return 'https://images.unsplash.com/photo-1534939561126-855b8675edd7?auto=format&fit=crop&w=600&h=600&q=80';
+    return pureImg;
   }
   if (normName.includes('tortilla')) {
-    return 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600&h=600&q=80';
+    return tortillaImg;
   }
 
   // Fallbacks by category

@@ -155,7 +155,7 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-6',
-    name: 'Coca-Cola Litro',
+    name: 'Coca-Cola 1 Litro vidrio',
     description: 'Bebida bien helada, presentación familiar de vidrio retornable o plástico según stock.',
     price: 1800,
     cost: 900,

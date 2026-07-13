@@ -132,6 +132,17 @@ export default function App() {
         snapshot.forEach((doc) => {
           list.push(doc.data() as Product);
         });
+        
+        // Auto-update prod-6 if it has the old name
+        const oldCoca = list.find(p => p.id === 'prod-6');
+        if (oldCoca && (oldCoca.name === 'Coca-Cola Litro' || oldCoca.name === 'Coca-Cola 1 Litro')) {
+          setDoc(doc(firestoreDB, 'products', 'prod-6'), {
+            ...oldCoca,
+            name: 'Coca-Cola 1 Litro vidrio',
+            description: 'Bebida bien helada, presentación familiar de vidrio retornable o plástico según stock.'
+          });
+        }
+        
         setProductsState(list);
       }
       setLoadingProducts(false);
