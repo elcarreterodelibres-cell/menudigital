@@ -43,7 +43,7 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-min-empanada',
-    name: 'Empanadas de carne de vaca',
+    name: 'Empanadas de carne de vaca Frita',
     description: 'Sabrosas empanadas tradicionales rellenas de carne de vaca seleccionada con verdeo, huevo duro y especias criollas.',
     price: 900,
     cost: 300,

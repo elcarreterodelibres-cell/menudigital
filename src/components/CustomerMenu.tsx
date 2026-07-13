@@ -13,6 +13,11 @@ import hamburguesaCompletaImg from '../assets/images/hamburguesa_completa_real_1
 import ensaladaCompletaImg from '../assets/images/ensalada_completa_1783970223631.jpg';
 import ensaladaMixtaImg from '../assets/images/ensalada_mixta_image_1783970409176.jpg';
 import milanesaCompletoImg from '../assets/images/milanesa_completo_1783970630186.jpg';
+import empanadasCarneFritasImg from '../assets/images/empanadas_carne_fritas_1783971442505.jpg';
+import pizzaMuzzarellaImg from '../assets/images/pizza_muzzarella_1783971781781.jpg';
+import pizzaCompletaImg from '../assets/images/pizza_completa_1783971971657.jpg';
+import chuletaNovilloImg from '../assets/images/chuleta_novillo_1783972229044.jpg';
+import aguaMineralImg from '../assets/images/agua_mineral_500ml_1783972362566.jpg';
 import { 
   ShoppingBag, 
   Plus, 
@@ -51,7 +56,7 @@ interface CustomerMenuProps {
 }
 
 // Map high quality Unsplash images specifically for product illustration
-const getProductImage = (productId: string, productName: string, category: string) => {
+export const getProductImage = (productId: string, productName: string, category: string) => {
   const normName = productName.toLowerCase();
   const normCat = category.toLowerCase();
 
@@ -95,21 +100,27 @@ const getProductImage = (productId: string, productName: string, category: strin
     return 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=600&h=600&q=80';
   }
   if (productId === 'prod-7' || normName.includes('agua') || normName.includes('mineral')) {
-    return 'https://images.unsplash.com/photo-1608885898957-a599fb1b4600?auto=format&fit=crop&w=600&h=600&q=80';
+    return aguaMineralImg;
   }
 
   // Explicit keyword matches for Argentine restaurant products
+  if (productId === 'prod-min-empanada' || normName.includes('empanada')) {
+    return empanadasCarneFritasImg;
+  }
+  if (productId === 'prod-plat-chuleta-novillo' || normName.includes('chuleta de novillo') || normName === 'chuleta de novillo' || (normName.includes('chuleta') && normName.includes('novillo'))) {
+    return chuletaNovilloImg;
+  }
   if (normName.includes('chuleta') || normName.includes('novillo') || normName.includes('bife') || normName.includes('entrecot') || normName.includes('asado') || normName.includes('carne') || normName.includes('costeleta') || normName.includes('bife de chorizo') || normName.includes('tapa de asado') || normName.includes('vacío') || normName.includes('vacio')) {
     return 'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=600&h=600&q=80';
   }
   if (normName.includes('milanesa')) {
     return 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=600&h=600&q=80';
   }
-  if (normName.includes('empanada')) {
-    return 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=600&h=600&q=80';
+  if (productId === 'prod-min-pizza-completa' || normName.includes('pizza completa') || (normName.includes('pizza') && normName.includes('completa'))) {
+    return pizzaCompletaImg;
   }
   if (normName.includes('pizza') || normName.includes('muzzarella') || normName.includes('muzarella')) {
-    return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&h=600&q=80';
+    return pizzaMuzzarellaImg;
   }
   if (normName.includes('berenjena')) {
     return berenjenasImg;

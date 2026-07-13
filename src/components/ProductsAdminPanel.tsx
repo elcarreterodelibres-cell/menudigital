@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Product, ProductIngredient, Ingredient } from '../types';
 import { Plus, Edit2, Trash2, Check, X, Tag, DollarSign, Image as ImageIcon, Sparkles, Filter, Percent, Settings } from 'lucide-react';
+import { getProductImage } from './CustomerMenu';
 
 interface ProductsAdminPanelProps {
   products: Product[];
@@ -444,7 +445,7 @@ export default function ProductsAdminPanel({ products, setProducts, ingredients 
               >
                 <div className="h-44 w-full bg-slate-100 dark:bg-slate-950 relative group overflow-hidden">
                   <img
-                    src={prod.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80'}
+                    src={prod.imageUrl || getProductImage(prod.id, prod.name, prod.category)}
                     alt={prod.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     referrerPolicy="no-referrer"
