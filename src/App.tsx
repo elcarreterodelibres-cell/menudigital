@@ -139,9 +139,36 @@ export default function App() {
           setDoc(doc(firestoreDB, 'products', 'prod-6'), {
             ...oldCoca,
             name: 'Coca-Cola 1 Litro vidrio',
-            description: 'Bebida bien helada, presentación familiar de vidrio retornable o plástico según stock.'
+            description: 'Bebida bien helada, presentation familiar de vidrio retornable o plástico según stock.'
           });
         }
+
+        // Auto-update Milanesa name and description if it has the old name
+        const oldMilanesa = list.find(p => p.id === 'prod-plat-milanesa-fritas-huevo');
+        if (oldMilanesa && oldMilanesa.name !== 'Milanesa de Novillo Seleccionado') {
+          setDoc(doc(firestoreDB, 'products', 'prod-plat-milanesa-fritas-huevo'), {
+            ...oldMilanesa,
+            name: 'Milanesa de Novillo Seleccionado',
+            description: 'Milanesa clásica de carne súper crocante, tierna y dorada a la perfección. Incluye selección de 1 o más guarniciones (la primera está bonificada).'
+          });
+        }
+
+        // Auto-delete removed products from Firestore
+        const idsToDelete = ['prod-1', 'prod-2', 'prod-3', 'prod-4', 'prod-5'];
+        idsToDelete.forEach((id) => {
+          const exists = list.some(existing => existing.id === id);
+          if (exists) {
+            deleteDoc(doc(firestoreDB, 'products', id));
+          }
+        });
+
+        // Auto-seed any missing default products (like chuleta de cerdo a la riojana) to Firestore
+        INITIAL_PRODUCTS.forEach((p) => {
+          const exists = list.some(existing => existing.id === p.id);
+          if (!exists) {
+            setDoc(doc(firestoreDB, 'products', p.id), p);
+          }
+        });
         
         setProductsState(list);
       }

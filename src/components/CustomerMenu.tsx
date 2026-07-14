@@ -18,6 +18,14 @@ import pizzaMuzzarellaImg from '../assets/images/pizza_muzzarella_1783971781781.
 import pizzaCompletaImg from '../assets/images/pizza_completa_1783971971657.jpg';
 import chuletaNovilloImg from '../assets/images/chuleta_novillo_1783972229044.jpg';
 import aguaMineralImg from '../assets/images/agua_mineral_500ml_1783972362566.jpg';
+import chuletaCerdoRiojanaImg from '../assets/images/chuleta_cerdo_riojana_1784041042179.jpg';
+import polloPlanchaImg from '../assets/images/pollo_plancha_steak_1784041568415.jpg';
+import carneAlHornoImg from '../assets/images/carne_al_horno_1784041751754.jpg';
+import estofadoCarneImg from '../assets/images/estofado_de_carne_1784041988281.jpg';
+import escalopeMarineraImg from '../assets/images/escalope_marinera_1784042260764.jpg';
+import milanesaFritasHuevoImg from '../assets/images/milanesa_fritas_huevo_1784042942814.jpg';
+import arrozImg from '../assets/images/porcion_arroz_1784044479839.jpg';
+import milanesaNapolitanaImg from '../assets/images/milanesa_napolitana_1784044748891.jpg';
 import { 
   ShoppingBag, 
   Plus, 
@@ -60,6 +68,36 @@ export const getProductImage = (productId: string, productName: string, category
   const normName = productName.toLowerCase();
   const normCat = category.toLowerCase();
 
+  // 1. High priority exact ID matches for custom/special plates to prevent keyword overrides (like "fritas", "papas", etc.)
+  if (productId === 'prod-plat-milanesa-napolitana' || normName.includes('napolitana')) {
+    return milanesaNapolitanaImg;
+  }
+  if (productId === 'prod-plat-milanesa-fritas-huevo' || normName.includes('milanesa de novillo seleccionado') || normName.includes('milanesa con papas fritas y huevo frito') || (normName.includes('milanesa') && normName.includes('fritas') && normName.includes('huevo')) || normName.includes('milanesa de novillo')) {
+    return milanesaFritasHuevoImg;
+  }
+  if (productId === 'prod-plat-escalope-marinera' || normName.includes('escalope') || normName.includes('marinera')) {
+    return escalopeMarineraImg;
+  }
+  if (productId === 'prod-plat-estofado-carne' || normName.includes('estofado') || normName.includes('estofado de carne') || normName === 'estofado de carne') {
+    return estofadoCarneImg;
+  }
+  if (productId === 'prod-plat-carne-horno' || normName.includes('carne al horno') || normName === 'carne al horno' || (normName.includes('carne') && normName.includes('horno'))) {
+    return carneAlHornoImg;
+  }
+  if (productId === 'prod-plat-pollo-plancha' || normName.includes('pollo a la plancha') || normName === 'pollo a la plancha' || (normName.includes('pollo') && normName.includes('plancha'))) {
+    return polloPlanchaImg;
+  }
+  if (productId === 'prod-plat-chuleta-cerdo-riojana' || normName.includes('riojana') || (normName.includes('chuleta') && normName.includes('cerdo'))) {
+    return chuletaCerdoRiojanaImg;
+  }
+  if (productId === 'prod-plat-chuleta-novillo' || normName.includes('chuleta de novillo') || normName === 'chuleta de novillo' || (normName.includes('chuleta') && normName.includes('novillo'))) {
+    return chuletaNovilloImg;
+  }
+
+  // 2. Standard category/keyword matches
+  if (productId === 'prod-guar-arroz' || normName.includes('arroz')) {
+    return arrozImg;
+  }
   if (productId === 'prod-guar-ensalada-comp' || normName.includes('ensalada completa')) {
     return ensaladaCompletaImg;
   }
@@ -106,9 +144,6 @@ export const getProductImage = (productId: string, productName: string, category
   // Explicit keyword matches for Argentine restaurant products
   if (productId === 'prod-min-empanada' || normName.includes('empanada')) {
     return empanadasCarneFritasImg;
-  }
-  if (productId === 'prod-plat-chuleta-novillo' || normName.includes('chuleta de novillo') || normName === 'chuleta de novillo' || (normName.includes('chuleta') && normName.includes('novillo'))) {
-    return chuletaNovilloImg;
   }
   if (normName.includes('chuleta') || normName.includes('novillo') || normName.includes('bife') || normName.includes('entrecot') || normName.includes('asado') || normName.includes('carne') || normName.includes('costeleta') || normName.includes('bife de chorizo') || normName.includes('tapa de asado') || normName.includes('vacío') || normName.includes('vacio')) {
     return 'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=600&h=600&q=80';
@@ -662,6 +697,30 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
     'prod-plat-chuleta-novillo': {
       name: 'Costeleta de Novilho',
       description: 'Costeleta macia de novilho premium grelhada. Inclui seleção de um ou mais acompanhamentos (o primeiro é cortesia).'
+    },
+    'prod-plat-chuleta-cerdo-riojana': {
+      name: 'Costeleta de Porco à Riojana',
+      description: 'Costeletas de porco suculentas grelhadas acompanhadas de pimentão, ervilhas, presunto e um ovo frito. Inclui seleção de um ou mais acompanhamentos (o primeiro é cortesia).'
+    },
+    'prod-plat-pollo-plancha': {
+      name: 'Frango Grelhado',
+      description: 'Peito de frango premium grelhado, macio e dourado com limão e ervas finas. Inclui seleção de um ou mais acompanhamentos (o primeiro é cortesia).'
+    },
+    'prod-plat-carne-horno': {
+      name: 'Carne Assada ao Forno',
+      description: 'Carne bovina premium macia, assada lentamente no forno em seu próprio molho con ervas finas. Inclui seleção de um ou mais acompanhamentos (o primeiro é cortesia).'
+    },
+    'prod-plat-estofado-carne': {
+      name: 'Guisado de Carne',
+      description: 'Delicioso guisado de carne cozido lentamente com batatas, cenouras e ervilhas em um molho requintado. Inclui seleção de um ou mais acompanhamentos (o primeiro é cortesia).'
+    },
+    'prod-plat-escalope-marinera': {
+      name: 'Escalope ou Marinera',
+      description: 'Fatias finas e macias de carne empanadas em uma saborosa mistura de ovo, alho, salsa e farinha, douradas com perfeição. Inclui seleção de um ou mais acompanhamentos (o primeiro é cortesia).'
+    },
+    'prod-plat-milanesa-fritas-huevo': {
+      name: 'Milanesa de Novilho Selecionado',
+      description: 'Clássica milanesa de carne bovina premium super crocante e saborosa. Inclui seleção de um ou mais acompanhamentos (o primeiro é cortesia).'
     }
   };
 
@@ -734,6 +793,7 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
   // Side Dish Selection Modal State (for Category Platos)
   const [sideDishProduct, setSideDishProduct] = useState<Product | null>(null);
   const [selectedSideDishesMap, setSelectedSideDishesMap] = useState<{[key: string]: boolean}>({});
+  const [selectedEggsCount, setSelectedEggsCount] = useState<number>(0);
   const [pendingSideDishes, setPendingSideDishes] = useState<{ id: string; name: string; price: number; cost: number }[] | null>(null);
 
   // Profile avatar details state
@@ -951,6 +1011,9 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       const extraPrice = sortedExtras.slice(1).reduce((acc, curr) => acc + curr.price, 0);
       price += extraPrice;
     }
+    if (item.selectedEggs && item.selectedEggs > 0) {
+      price += item.selectedEggs * 800;
+    }
     return price;
   };
 
@@ -959,6 +1022,9 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
     if (item.selectedSideDishes && item.selectedSideDishes.length > 0) {
       const sideDishesCost = item.selectedSideDishes.reduce((acc, curr) => acc + curr.cost, 0);
       cost += sideDishesCost;
+    }
+    if (item.selectedEggs && item.selectedEggs > 0) {
+      cost += item.selectedEggs * 200;
     }
     return cost;
   };
@@ -997,27 +1063,31 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
   const addPlateToCart = (
     product: Product, 
     sideDishes: { id: string; name: string; price: number; cost: number }[],
-    selectedDressings?: string[]
+    selectedDressings?: string[],
+    selectedEggs?: number
   ) => {
     setCart((prev) => {
       const sideDishesKey = JSON.stringify(sideDishes.map(d => d.id).sort() || []);
       const dressingsKey = JSON.stringify(selectedDressings || []);
+      const eggsKey = selectedEggs || 0;
       const existing = prev.find(
         (item) =>
           item.product.id === product.id &&
           JSON.stringify((item.selectedSideDishes || []).map(d => d.id).sort()) === sideDishesKey &&
-          JSON.stringify(item.selectedDressings || []) === dressingsKey
+          JSON.stringify(item.selectedDressings || []) === dressingsKey &&
+          (item.selectedEggs || 0) === eggsKey
       );
       if (existing) {
         return prev.map((item) =>
           item.product.id === product.id &&
           JSON.stringify((item.selectedSideDishes || []).map(d => d.id).sort()) === sideDishesKey &&
-          JSON.stringify(item.selectedDressings || []) === dressingsKey
+          JSON.stringify(item.selectedDressings || []) === dressingsKey &&
+          (item.selectedEggs || 0) === eggsKey
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      return [...prev, { product, quantity: 1, selectedSideDishes: sideDishes, selectedDressings }];
+      return [...prev, { product, quantity: 1, selectedSideDishes: sideDishes, selectedDressings, selectedEggs: eggsKey }];
     });
   };
 
@@ -1031,12 +1101,14 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       const target = matches[matches.length - 1];
       const targetDressingsKey = JSON.stringify(target.selectedDressings || []);
       const targetSideDishesKey = JSON.stringify((target.selectedSideDishes || []).map(d => d.id).sort());
+      const targetEggsKey = target.selectedEggs || 0;
 
       return prev
         .map((item) =>
           item.product.id === productId &&
           JSON.stringify(item.selectedDressings || []) === targetDressingsKey &&
-          JSON.stringify((item.selectedSideDishes || []).map(d => d.id).sort()) === targetSideDishesKey
+          JSON.stringify((item.selectedSideDishes || []).map(d => d.id).sort()) === targetSideDishesKey &&
+          (item.selectedEggs || 0) === targetEggsKey
             ? { ...item, quantity: item.quantity + delta }
             : item
         )
@@ -1061,18 +1133,8 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       });
     } else if (catLower === 'platos') {
       setSideDishProduct(p);
-      // Auto-select the first available side dish!
-      const availableGuarniciones = products.filter(g => {
-        const gOrig = originalProducts.find(op => op.id === g.id) || g;
-        return (gOrig.category || '').toLowerCase() === 'guarniciones';
-      });
-      if (availableGuarniciones.length > 0) {
-        setSelectedSideDishesMap({
-          [availableGuarniciones[0].id]: true
-        });
-      } else {
-        setSelectedSideDishesMap({});
-      }
+      setSelectedEggsCount(0);
+      setSelectedSideDishesMap({});
     } else {
       addToCart(p, []);
       toast.success(`${p.name} ${language === 'pt' ? 'adicionado' : 'agregado'}!`);
@@ -1110,16 +1172,11 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
         cost: p.cost || 0
       }));
       
-    if (selectedList.length === 0) {
-      toast.warning('Por favor, seleccioná al menos 1 guarnición para tu plato.');
-      return;
-    }
-    
     const orig = originalProducts.find(op => op.id === sideDishProduct.id) || sideDishProduct;
     const catLower = (orig.category || '').toLowerCase();
     
     if (catLower === 'platos') {
-      addPlateToCart(sideDishProduct, selectedList, []);
+      addPlateToCart(sideDishProduct, selectedList, [], selectedEggsCount);
       setSideDishProduct(null);
       toast.success(`${sideDishProduct.name} ${language === 'pt' ? 'adicionado' : 'agregado'}!`);
     } else {
@@ -1154,9 +1211,12 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       const sideDishesStr = it.selectedSideDishes && it.selectedSideDishes.length > 0
         ? ` (Guarnición: ${it.selectedSideDishes.map(d => d.name).join(', ')})`
         : '';
+      const eggsStr = it.selectedEggs && it.selectedEggs > 0
+        ? ` (+ ${it.selectedEggs} Huevo${it.selectedEggs > 1 ? 's' : ''} Frito${it.selectedEggs > 1 ? 's' : ''})`
+        : '';
       return {
         productId: it.product.id,
-        productName: `${it.product.name}${dressingsStr}${sideDishesStr}`,
+        productName: `${it.product.name}${dressingsStr}${sideDishesStr}${eggsStr}`,
         quantity: it.quantity,
         price: getCartItemUnitPrice(it),
         cost: getCartItemUnitCost(it),
@@ -1217,8 +1277,11 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
       const sideDishesStr = it.selectedSideDishes && it.selectedSideDishes.length > 0
         ? `\n   └ _Guarnición: ${it.selectedSideDishes.map(d => d.name).join(', ')}_`
         : '';
+      const eggsStr = it.selectedEggs && it.selectedEggs > 0
+        ? `\n   └ _Agregado: +${it.selectedEggs} Huevo${it.selectedEggs > 1 ? 's' : ''} Frito${it.selectedEggs > 1 ? 's' : ''}_`
+        : '';
       const customUnitPrice = getCartItemUnitPrice(it);
-      text += `• *${it.quantity}x* ${it.product.name} ${dressingsStr}${sideDishesStr} (${formatCurrency(customUnitPrice * it.quantity)})\n`;
+      text += `• *${it.quantity}x* ${it.product.name} ${dressingsStr}${sideDishesStr}${eggsStr} (${formatCurrency(customUnitPrice * it.quantity)})\n`;
     });
 
     if (costOfDelivery > 0) {
@@ -1836,6 +1899,11 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
                                 {t('Guarnición:')} {item.selectedSideDishes.map(d => d.name).join(', ')}
                               </p>
                             )}
+                            {item.selectedEggs && item.selectedEggs > 0 && (
+                              <p className="text-[10px] text-[#C5A059] font-semibold mt-0.5">
+                                🍳 +{item.selectedEggs} Huevo{item.selectedEggs > 1 ? 's' : ''} Frito{item.selectedEggs > 1 ? 's' : ''} (+{formatCurrency(item.selectedEggs * 800)})
+                              </p>
+                            )}
 
                             {/* Subtotal calculated inside */}
                             <p className="text-[#C5A059] font-bold mt-1 text-xs font-mono">
@@ -2124,6 +2192,11 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
                           {it.selectedSideDishes && it.selectedSideDishes.length > 0 && (
                             <p className="text-[10px] text-[#C5A059] font-semibold pl-1 mt-0.5">
                               {t('Guarnición:')} {it.selectedSideDishes.map(d => d.name).join(', ')}
+                            </p>
+                          )}
+                          {it.selectedEggs && it.selectedEggs > 0 && (
+                            <p className="text-[10px] text-[#C5A059] font-semibold pl-1 mt-0.5">
+                              🍳 +{it.selectedEggs} Huevo{it.selectedEggs > 1 ? 's' : ''} Frito{it.selectedEggs > 1 ? 's' : ''} (+{formatCurrency(it.selectedEggs * 800)})
                             </p>
                           )}
                         </div>
@@ -2477,6 +2550,37 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
               })}
             </div>
 
+            {/* Huevo Frito Selector */}
+            <div className="mb-4 p-3 bg-zinc-900/50 border border-zinc-800/85 rounded-xl flex items-center justify-between font-sans select-none">
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-white flex items-center gap-1.5 uppercase">
+                  🍳 {t('Sumar Huevo Frito')}
+                </span>
+                <span className="text-[10px] text-zinc-500 font-bold">
+                  {t('Huevo frito extra (+{price} c/u)').replace('{price}', formatCurrency(800))}
+                </span>
+              </div>
+              <div className="flex items-center bg-zinc-950/65 border border-zinc-800 rounded-xl p-1 select-none">
+                <button
+                  type="button"
+                  onClick={() => setSelectedEggsCount(prev => Math.max(0, prev - 1))}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer font-bold"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="px-3 text-xs font-black text-white min-w-[20px] text-center font-mono">
+                  {selectedEggsCount}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedEggsCount(prev => prev + 1)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-[#C5A059] hover:bg-[#C5A059]/20 transition-colors cursor-pointer font-bold"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
             {/* Price Preview */}
             <div className="mb-4 bg-zinc-900/60 border border-zinc-850/60 p-3 rounded-xl flex justify-between items-center text-xs">
               <span className="text-zinc-400 font-bold font-sans">{t('Precio Total del Plato:')}</span>
@@ -2488,7 +2592,8 @@ export default function CustomerMenu({ products: originalProducts, onOrderSubmit
                   });
                   const sortedSelected = [...selectedGuarniciones].sort((a, b) => (b.price || 0) - (a.price || 0));
                   const additionalCost = sortedSelected.slice(1).reduce((sum, g) => sum + (g.price || 0), 0);
-                  return formatCurrency((sideDishProduct.price || 0) + additionalCost);
+                  const eggsCost = selectedEggsCount * 800;
+                  return formatCurrency((sideDishProduct.price || 0) + additionalCost + eggsCost);
                 })()}
               </span>
             </div>

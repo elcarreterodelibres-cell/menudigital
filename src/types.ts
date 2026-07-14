@@ -30,6 +30,7 @@ export interface CartItem {
   quantity: number;
   selectedDressings?: string[];
   selectedSideDishes?: { id: string; name: string; price: number; cost: number }[];
+  selectedEggs?: number;
 }
 
 export interface Order {
